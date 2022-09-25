@@ -41,6 +41,7 @@ typedef struct Enemy{
     Vector2 speed;
     bool active;
     Color color;
+    int side; // 0: esquerda | 1: direita;
 } Enemy;
 
 typedef struct Shoot{
@@ -272,8 +273,8 @@ void InitGame(void)
     sourceRec.y = 0;
     sourceRec.width = 160;
     sourceRec.height = 81; 
-    btnBounds.x = 0; 
-    btnBounds.y = 0;
+    btnBounds.x = GetScreenWidth()/1.985 - button.width/2; 
+    btnBounds.y = GetScreenHeight()/1.85 + button.height/2;
     btnBounds.width = 160;
     btnBounds.height = 81;
 
@@ -342,8 +343,8 @@ void InitGame(void)
     playerLife[1].origin.x = 0;
     playerLife[1].origin.y = 0;
 
-    // Initialize enemies
-    for (int i = 0; i < NUM_MAX_ENEMIES; i++)
+    // Initialize right side enemies
+    for (int i = 0; i < NUM_MAX_ENEMIES; i += 2)
     {
         enemy[i].rec.width = 10;
         enemy[i].rec.height = 10;
@@ -353,6 +354,21 @@ void InitGame(void)
         enemy[i].speed.y = 5;
         enemy[i].active = true;
         enemy[i].color = GRAY;
+        enemy[i].side = 1;
+    }
+
+    // Initialize left side enemies
+    for (int i = 1; i < NUM_MAX_ENEMIES; i += 2)
+    {
+        enemy[i].rec.width = 10;
+        enemy[i].rec.height = 10;
+        enemy[i].rec.x = GetRandomValue(-1000, 0);
+        enemy[i].rec.y = GetRandomValue(0, GetScreenHeight() - enemy[i].rec.height);
+        enemy[i].speed.x = 5;
+        enemy[i].speed.y = 5;
+        enemy[i].active = true;
+        enemy[i].color = GRAY;
+        enemy[i].side = 0;
     }
 
     // Initialize shoots
@@ -375,7 +391,8 @@ void InitGame(void)
 void UpdateGame(void)
 {
 
-    // Adjusting visual elements on resizabled window
+    // Adjusting visual elements on resizabled window 
+    // !player's life
     playerLife[0].lifeDest.y = GetScreenHeight() - 60;
     playerLife[1].lifeDest.y = GetScreenHeight() - 60;
     playerLife[2].lifeDest.y = GetScreenHeight() - 60;
@@ -561,8 +578,8 @@ void UpdateGame(void)
 
             }
 
-            // Enemy behaviour
-            for (int i = 0; i < activeEnemies; i++)
+            // Right enemy behaviour
+             for (int i = 0; i < activeEnemies; i += 2)
             {
                 if (enemy[i].active)
                 {
@@ -571,6 +588,21 @@ void UpdateGame(void)
                     if (enemy[i].rec.x < 0)
                     {
                         enemy[i].rec.x = GetRandomValue(GetScreenWidth(), GetScreenWidth() + 1000);
+                        enemy[i].rec.y = GetRandomValue(0, GetScreenHeight() - enemy[i].rec.height);
+                    }
+                }
+            }
+
+            // Left enemy behaviour
+            for (int i = 1; i < activeEnemies; i += 2)
+            {
+                if (enemy[i].active)
+                {
+                    enemy[i].rec.x += enemy[i].speed.x;
+
+                    if (enemy[i].rec.x > GetScreenWidth())
+                    {
+                        enemy[i].rec.x = GetRandomValue(-1000, 0);
                         enemy[i].rec.y = GetRandomValue(0, GetScreenHeight() - enemy[i].rec.height);
                     }
                 }
@@ -676,6 +708,7 @@ void UpdateTitle(void){
 
     // Keeps the music playing
     UpdateMusicStream(backgroundMenu.song);
+    PlayMusicStream(backgroundMenu.song);
 
     btnBounds.x = GetScreenWidth()/1.985 - button.width/2; 
     btnBounds.y = GetScreenHeight()/1.85 + button.height/2;
