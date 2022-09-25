@@ -93,7 +93,7 @@ bool colision = true;
 int timerCount = 0;
 
 // music variables
-Music backgroundMusic = { 0 };
+Song backgroundMusic = { 0 };
 
 //------------------------------------------------------------------------------------
 // Module Functions Declaration (local)
@@ -114,8 +114,12 @@ int main(void)
     // Initialization (Note windowTitle is unused on Android)
     //---------------------------------------------------------
     InitWindow(screenWidth, screenHeight, "classic game: space invaders");
-
+    InitAudioDevice();
     InitGame();
+
+    // Initialize audio variables
+    backgroundMusic.song = LoadMusicStream("Assets/NinjaAdventure/Musics/4 - Village.ogg");
+    PlayMusicStream(backgroundMusic.song);
 
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop(UpdateDrawFrame, 144, 1);
@@ -135,7 +139,7 @@ int main(void)
     // De-Initialization
     //--------------------------------------------------------------------------------------
     UnloadGame();         // Unload loaded data (textures, sounds, models...)
-
+    CloseAudioDevice();
     CloseWindow();        // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
 
@@ -244,6 +248,9 @@ void InitGame(void)
 // Update game (one frame)
 void UpdateGame(void)
 {
+    // Background music
+    UpdateMusicStream(backgroundMusic.song);
+
     // Adjusting visual elements on resizabled window
     playerLife[0].lifeDest.y = GetScreenHeight() - 50;
     playerLife[1].lifeDest.y = GetScreenHeight() - 50;
@@ -540,6 +547,8 @@ void UnloadGame(void)
     UnloadTexture(playerLife[0].life);
     UnloadTexture(playerLife[1].life);
     UnloadTexture(playerLife[2].life);
+    UnloadMusicStream(backgroundMusic.song);
+    
 }
 
 // Update and Draw (one frame)
