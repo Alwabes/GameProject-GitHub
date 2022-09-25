@@ -54,6 +54,11 @@ typedef struct Song{
     Music song;
 } Song;
 
+typedef struct SoundEffect{
+    bool soundPaused;
+    Sound sound;
+} SoundEffect;
+
 //------------------------------------------------------------------------------------
 // Global Variables Declaration
 //------------------------------------------------------------------------------------
@@ -94,6 +99,8 @@ int timerCount = 0;
 
 // music variables
 Song backgroundMusic = { 0 };
+SoundEffect gameOverSound = { 0 };
+SoundEffect damageTaken = { 0 };
 
 //------------------------------------------------------------------------------------
 // Module Functions Declaration (local)
@@ -116,10 +123,6 @@ int main(void)
     InitWindow(screenWidth, screenHeight, "classic game: space invaders");
     InitAudioDevice();
     InitGame();
-
-    // Initialize audio variables
-    backgroundMusic.song = LoadMusicStream("Assets/NinjaAdventure/Musics/4 - Village.ogg");
-    PlayMusicStream(backgroundMusic.song);
 
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop(UpdateDrawFrame, 144, 1);
@@ -153,6 +156,12 @@ int main(void)
 // Initialize game variables
 void InitGame(void)
 {
+    // Initialize audio variables
+    backgroundMusic.song = LoadMusicStream("Assets/NinjaAdventure/Musics/4 - Village.ogg");
+    gameOverSound.sound = LoadSound("Assets/NinjaAdventure/Sounds/Game/GameOver.wav");
+    damageTaken.sound = LoadSound("Assets/NinjaAdventure/Sounds/Game/Hit4.wav");
+    PlayMusicStream(backgroundMusic.song);
+
     // Initialize game variables
     shootRate = 0;
     pause = false;
@@ -388,6 +397,7 @@ void UpdateGame(void)
                         count--;
                         colision = false;
                         invencibleCount = 0;
+                        PlaySound(damageTaken.sound);
                     }
 
                     invencibleCount++;
@@ -397,11 +407,16 @@ void UpdateGame(void)
                     }
                 }
 
+                // When player is dead
                 if (count == -1){
+                    StopMusicStream(backgroundMusic.song);
+
                     player.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/Dead.png");
                     player.playerSrc.x = 0;
                     player.playerSrc.y = 0;
                     alive = false;
+
+                    PlaySound(gameOverSound.sound);
 
                     timerCount++;
 
