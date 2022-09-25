@@ -17,6 +17,7 @@
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
 //----------------------------------------------------------------------------------
+typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, ENDING } GameScreen;
 typedef enum { FIRST = 0, SECOND, THIRD } EnemyWave;
 
 typedef struct Player{
@@ -85,7 +86,7 @@ static int activeEnemies = 0;
 static int enemiesKill = 0;
 static bool smooth = false;
 
-// moving animation variables
+// Moving animation variables
 bool moving, alive = true;
 int direction, frameCount, playerFrame;
 
@@ -96,22 +97,44 @@ int damageAnimCount;
 bool colision = true;
 bool damageAnim = false;
 
-// timer variables
+// Timer variables
 int timerCount = 0;
 
-// music variables
+// Music variables
 Song backgroundMusic = { 0 };
+Song backgroundMenu = { 0 };
 SoundEffect gameOverSound = { 0 };
 SoundEffect damageTaken = { 0 };
+
+// Button variables
+Sound fxButton; 
+Texture2D button;
+Rectangle sourceRec; // Based on size of image
+Rectangle btnBounds;
+bool btnAction = false; 
+bool isPressed = false;
+Vector2 mousePoint = { 0, 0 };
+
+// Current Screen variable
+GameScreen currentScreen = LOGO;
+Texture2D backgroundLogo, backgroundTitle;
+Rectangle bgSrc;
+Rectangle bgDest;
+Vector2 bgOrigin;
 
 //------------------------------------------------------------------------------------
 // Module Functions Declaration (local)
 //------------------------------------------------------------------------------------
-static void InitGame(void);         // Initialize game
-static void UpdateGame(void);       // Update game (one frame)
-static void DrawGame(void);         // Draw game (one frame)
-static void UnloadGame(void);       // Unload game
-static void UpdateDrawFrame(void);  // Update and Draw (one frame)
+void InitGame(void);         // Initialize game
+void UpdateGame(void);       
+void DrawGame(void);        
+void UpdateLogo(void);         
+void DrawLogo(void);         
+void UpdateTitle(void);    
+void DrawTitle(void);      
+void UnloadGame(void);       
+void UpdateDrawFrame(void);  
+void DrawScreen(void);       // Draw the current screen
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -119,12 +142,16 @@ static void UpdateDrawFrame(void);  // Update and Draw (one frame)
 int main(void)
 {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
+    Image windowIcon = LoadImage("Assets/NinjaAdventure/icon.png");
 
     // Initialization (Note windowTitle is unused on Android)
     //---------------------------------------------------------
-    InitWindow(screenWidth, screenHeight, "classic game: space invaders");
+    InitWindow(screenWidth, screenHeight, "NINJA DEFENDERS");
+    SetWindowIcon(windowIcon);
     InitAudioDevice();
     InitGame();
+
+    int framesCounter = 0; 
 
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop(UpdateDrawFrame, 144, 1);
@@ -135,10 +162,56 @@ int main(void)
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
-        // Update and Draw
-        //----------------------------------------------------------------------------------
-        UpdateDrawFrame();
-        //----------------------------------------------------------------------------------
+        switch(currentScreen)
+        {
+            case LOGO:
+            {
+                UpdateLogo();
+
+                framesCounter++; 
+
+                // Wait for 4 seconds (240 frames) before jumping to TITLE screen
+                if (framesCounter == 240)
+                {
+                    currentScreen = TITLE;
+                }
+            } break;
+            case TITLE:
+            {
+                UpdateTitle();
+
+                // Press enter to change to GAMEPLAY screen
+                if (isPressed)
+                {
+                    currentScreen = GAMEPLAY;
+                    isPressed = false;
+                }
+            } break;
+            case GAMEPLAY:
+            {
+                UpdateGame();
+
+                // Press R to change to ENDING screen
+                if (IsKeyPressed(KEY_R))
+                {
+                    currentScreen = ENDING;
+                }
+            } break;
+            case ENDING:
+            {
+                // TODO: Update ENDING screen variables here!
+
+                // Press enter to return to TITLE screen
+                if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
+                {
+                    currentScreen = TITLE;
+                }
+            } break;
+            default: break;
+        }
+
+        //Draw the current screen
+        DrawScreen();
     }
 #endif
     // De-Initialization
@@ -158,9 +231,33 @@ int main(void)
 // Initialize game variables
 void InitGame(void)
 {
+
+    // Secure that the game will start properly
+    alive = true;
+    count = 2;
+    timerCount = 0;
+    damageAnim = false;
+
+    // Initialize background variables
+    backgroundLogo = LoadTexture("Assets/NinjaAdventure/Backgrounds/background.png");
+    backgroundTitle = LoadTexture("Assets/NinjaAdventure/Backgrounds/backgroud_titlescreen.png");
+    bgSrc.x = 0;
+    bgSrc.y = 0;
+    bgSrc.width = 890;
+    bgSrc.height = 470;
+    bgDest.x = 0;
+    bgDest.y = 0;
+    bgDest.width = GetScreenWidth();
+    bgDest.height = GetScreenHeight();
+    bgOrigin.x = 0;
+    bgOrigin.y = 0;
+
     // Initialize audio variables
     backgroundMusic.song = LoadMusicStream("Assets/NinjaAdventure/Musics/4 - Village.ogg");
     SetMusicVolume(backgroundMusic.song,  0.3);
+
+    backgroundMenu.song = LoadMusicStream("Assets/NinjaAdventure/Musics/1 - Adventure Begin.ogg");
+    SetMusicVolume(backgroundMenu.song,  0.3);
     
     gameOverSound.sound = LoadSound("Assets/NinjaAdventure/Sounds/Game/GameOver.wav");
     SetSoundVolume(gameOverSound.sound, 0.5);
@@ -168,7 +265,17 @@ void InitGame(void)
     damageTaken.sound = LoadSound("Assets/NinjaAdventure/Sounds/Game/Hit4.wav");
     SetSoundVolume(damageTaken.sound, 0.4);
 
-    PlayMusicStream(backgroundMusic.song);
+    // Initialize Button variables
+    fxButton = LoadSound("Assets/NinjaAdventure/Sounds/Menu/Menu9.wav");   // Load button sound
+    button = LoadTexture("Assets/NinjaAdventure/HUD/Play_Unpressed.png"); // Load button texture
+    sourceRec.x = 0;
+    sourceRec.y = 0;
+    sourceRec.width = 160;
+    sourceRec.height = 81; 
+    btnBounds.x = 0; 
+    btnBounds.y = 0;
+    btnBounds.width = 160;
+    btnBounds.height = 81;
 
     // Initialize game variables
     shootRate = 0;
@@ -202,36 +309,36 @@ void InitGame(void)
     playerLife[0].life = LoadTexture("Assets/NinjaAdventure/HUD/Heart.png");
     playerLife[0].lifeSrc.x = 0;
     playerLife[0].lifeSrc.y = 0;
-    playerLife[0].lifeSrc.width = 16;
-    playerLife[0].lifeSrc.height = 16;
+    playerLife[0].lifeSrc.width = 16.2;
+    playerLife[0].lifeSrc.height = 16.2;
     playerLife[0].lifeDest.x = 40;
-    playerLife[0].lifeDest.y = GetScreenHeight() - 50;
-    playerLife[0].lifeDest.width = 24;
-    playerLife[0].lifeDest.height = 24;
+    playerLife[0].lifeDest.y = 0;
+    playerLife[0].lifeDest.width = 32;
+    playerLife[0].lifeDest.height = 32;
     playerLife[0].origin.x = 0;
     playerLife[0].origin.y = 0;
 
     playerLife[1].life = LoadTexture("Assets/NinjaAdventure/HUD/Heart.png");
     playerLife[1].lifeSrc.x = 0;
     playerLife[1].lifeSrc.y = 0;
-    playerLife[1].lifeSrc.width = 16;
-    playerLife[1].lifeSrc.height = 16;
-    playerLife[1].lifeDest.x = 70;
-    playerLife[1].lifeDest.y = GetScreenHeight() - 50;
-    playerLife[1].lifeDest.width = 24;
-    playerLife[1].lifeDest.height = 24;
+    playerLife[1].lifeSrc.width = 16.2;
+    playerLife[1].lifeSrc.height = 16.2;
+    playerLife[1].lifeDest.x = 85;
+    playerLife[1].lifeDest.y = 0;
+    playerLife[1].lifeDest.width = 32;
+    playerLife[1].lifeDest.height = 32;
     playerLife[1].origin.x = 0;
     playerLife[1].origin.y = 0;
 
     playerLife[2].life = LoadTexture("Assets/NinjaAdventure/HUD/Heart.png");
     playerLife[2].lifeSrc.x = 0;
     playerLife[2].lifeSrc.y = 0;
-    playerLife[2].lifeSrc.width = 16;
-    playerLife[2].lifeSrc.height = 16;
-    playerLife[2].lifeDest.x = 100;
-    playerLife[2].lifeDest.y = GetScreenHeight() - 50;
-    playerLife[2].lifeDest.width = 24;
-    playerLife[2].lifeDest.height = 24;
+    playerLife[2].lifeSrc.width = 16.2;
+    playerLife[2].lifeSrc.height = 16.2;
+    playerLife[2].lifeDest.x = 130;
+    playerLife[2].lifeDest.y = 0;
+    playerLife[2].lifeDest.width = 32;
+    playerLife[2].lifeDest.height = 32;
     playerLife[1].origin.x = 0;
     playerLife[1].origin.y = 0;
 
@@ -262,19 +369,23 @@ void InitGame(void)
     }
 }
 
+//------------------------------------------------------------------------------------
 // Update game (one frame)
+//------------------------------------------------------------------------------------
 void UpdateGame(void)
 {
-    // Background music
-    UpdateMusicStream(backgroundMusic.song);
 
     // Adjusting visual elements on resizabled window
-    playerLife[0].lifeDest.y = GetScreenHeight() - 50;
-    playerLife[1].lifeDest.y = GetScreenHeight() - 50;
-    playerLife[2].lifeDest.y = GetScreenHeight() - 50;
+    playerLife[0].lifeDest.y = GetScreenHeight() - 60;
+    playerLife[1].lifeDest.y = GetScreenHeight() - 60;
+    playerLife[2].lifeDest.y = GetScreenHeight() - 60;
 
     if (!gameOver)
     {
+        // Background music
+        UpdateMusicStream(backgroundMusic.song);
+        PlayMusicStream(backgroundMusic.song);
+
         if (IsKeyPressed('P')) pause = !pause;
 
         if (!pause)
@@ -401,7 +512,7 @@ void UpdateGame(void)
             {
                 if (alive) {
                     if (CheckCollisionRecs(player.playerDest, enemy[i].rec) && colision){
-                        playerLife[count].lifeSrc.x = playerLife[count].lifeSrc.width * 4;
+                        playerLife[count].lifeSrc.x = (playerLife[count].lifeSrc.width * 4) - 0.8;
                         PlaySound(damageTaken.sound);
                         
                         count--;
@@ -411,6 +522,7 @@ void UpdateGame(void)
                         invencibleCount = 0;
                     }
 
+                    // Damage "animation" indicator
                     if (damageAnim){
                         if (damageAnimCount == 0 || damageAnimCount == 200)
                             player.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/Damage.png");
@@ -527,22 +639,95 @@ void UpdateGame(void)
         {
             InitGame();
             gameOver = false;
-            alive = true;
-            count = 2;
-            timerCount = 0;
-            damageAnim = false;
         }
     }
 }
 
+
+//------------------------------------------------------------------------------------
+// Update Logo (one frame)
+//------------------------------------------------------------------------------------
+void UpdateLogo(void){
+
+    bgDest.width = GetScreenWidth();
+    bgDest.height = GetScreenHeight();
+
+    // Background music for logo screen
+    UpdateMusicStream(backgroundMenu.song);
+    PlayMusicStream(backgroundMenu.song);
+
+}
+
+//------------------------------------------------------------------------------------
+// Draw Logo (one frame)
+//------------------------------------------------------------------------------------
+void DrawLogo(void)
+{
+    DrawTexturePro(backgroundLogo, bgSrc, bgDest, bgOrigin, 0, WHITE);
+}
+
+//------------------------------------------------------------------------------------
+// Update Title (one frame)
+//------------------------------------------------------------------------------------
+void UpdateTitle(void){
+
+    bgDest.width = GetScreenWidth();
+    bgDest.height = GetScreenHeight();
+
+    // Keeps the music playing
+    UpdateMusicStream(backgroundMenu.song);
+
+    btnBounds.x = GetScreenWidth()/1.985 - button.width/2; 
+    btnBounds.y = GetScreenHeight()/1.85 + button.height/2;
+
+    mousePoint = GetMousePosition();
+    btnAction = false;
+
+    // Check button state
+    if (CheckCollisionPointRec(mousePoint, btnBounds))
+    {
+        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
+            button = LoadTexture("Assets/NinjaAdventure/HUD/Play_Pressed_n.png");
+        }
+
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) 
+            btnAction = true;
+    }
+    else 
+    {
+        button = LoadTexture("Assets/NinjaAdventure/HUD/Play_Unpressed_n.png");
+    }
+
+    if (btnAction)
+    {
+        PlaySound(fxButton);
+        isPressed = true;
+        InitGame();
+        gameOver = false;
+    }
+
+    // Calculate button frame rectangle to draw depending on button state
+}
+
+//------------------------------------------------------------------------------------
+// Draw Title (one frame)
+//------------------------------------------------------------------------------------
+void DrawTitle(void)
+{
+    DrawTexturePro(backgroundTitle, bgSrc, bgDest, bgOrigin, 0, WHITE);
+
+    // Draw button frame
+    DrawTextureRec(button, sourceRec, (Vector2){ btnBounds.x, btnBounds.y }, WHITE); 
+}
+
+//------------------------------------------------------------------------------------
 // Draw game (one frame)
+//------------------------------------------------------------------------------------
 void DrawGame(void)
 {
-    BeginDrawing();
+    ClearBackground(RAYWHITE);
 
-        ClearBackground(RAYWHITE);
-
-        if (!gameOver)
+    if (!gameOver)
         {
             // Rectangle for tracking character position (testes!)
             // DrawRectangle(player.playerDest.x, player.playerDest.y, player.playerDest.width, player.playerDest.height, BLUE);
@@ -573,12 +758,53 @@ void DrawGame(void)
 
             if (pause) DrawText("GAME PAUSED", GetScreenWidth()/2 - MeasureText("GAME PAUSED", 40)/2, GetScreenHeight()/2 - 40, 40, GRAY);
         }
-        else DrawText("PRESS [ENTER] TO PLAY AGAIN", GetScreenWidth()/2 - MeasureText("PRESS [ENTER] TO PLAY AGAIN", 20)/2, GetScreenHeight()/2 - 50, 20, GRAY);
+    else DrawText("PRESS [ENTER] TO PLAY AGAIN", GetScreenWidth()/2 - MeasureText("PRESS [ENTER] TO PLAY AGAIN", 20)/2, GetScreenHeight()/2 - 50, 20, GRAY);
 
-    EndDrawing();
 }
 
+//------------------------------------------------------------------------------------
+// Drawn Different Screens [general]
+//------------------------------------------------------------------------------------
+void DrawScreen()
+{
+    BeginDrawing();
+
+        ClearBackground(RAYWHITE);
+
+        switch(currentScreen)
+        {
+            case LOGO:
+            {
+                DrawLogo();
+
+            } break;
+            case TITLE:
+            {
+                DrawTitle();
+
+            } break;
+            case GAMEPLAY:
+            {   
+                DrawGame();
+
+            } break;
+            case ENDING:
+            {
+                // TODO: Create and Instantiate drawEnding function;
+                DrawRectangle(0, 0, screenWidth, screenHeight, GREEN);
+                DrawText("TITLE SCREEN", 20, 20, 40, DARKGREEN);
+
+            } break;
+            default: break;
+        }
+
+    EndDrawing();
+    //----------------------------------------------------------------------------------
+}
+
+//------------------------------------------------------------------------------------
 // Unload game variables
+//------------------------------------------------------------------------------------
 void UnloadGame(void)
 {
     // TODO: Unload all dynamic loaded data (textures, sounds, models...)
@@ -586,13 +812,13 @@ void UnloadGame(void)
     UnloadTexture(playerLife[0].life);
     UnloadTexture(playerLife[1].life);
     UnloadTexture(playerLife[2].life);
+    UnloadTexture(backgroundLogo);
+    UnloadTexture(backgroundTitle);
+    UnloadTexture(button);
     UnloadMusicStream(backgroundMusic.song);
-    
+    UnloadMusicStream(backgroundMenu.song);
+    UnloadSound(gameOverSound.sound);
+    UnloadSound(damageTaken.sound);
+    UnloadSound(fxButton);
 }
 
-// Update and Draw (one frame)
-void UpdateDrawFrame(void)
-{
-    UpdateGame();
-    DrawGame();
-}
