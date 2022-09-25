@@ -1,16 +1,3 @@
-/*******************************************************************************************
-*
-*   raylib - classic game: space invaders
-*
-*   Sample game developed by Ian Eito, Albert Martos and Ramon Santamaria
-*
-*   This game has been created using raylib v1.3 (www.raylib.com)
-*   raylib is licensed under an unmodified zlib/libpng license (View raylib.h for details)
-*
-*   Copyright (c) 2015 Ramon Santamaria (@raysan5)
-*
-********************************************************************************************/
-
 #include "raylib.h"
 
 #if defined(PLATFORM_WEB)
@@ -32,9 +19,12 @@
 typedef enum { FIRST = 0, SECOND, THIRD } EnemyWave;
 
 typedef struct Player{
-    Rectangle rec;
+    Rectangle playerDest;
+    Rectangle playerSrc;
+    Vector2 origin;
     Vector2 speed;
     Color color;
+    Texture2D playerSprite;
 } Player;
 
 typedef struct Enemy{
@@ -54,8 +44,10 @@ typedef struct Shoot{
 //------------------------------------------------------------------------------------
 // Global Variables Declaration
 //------------------------------------------------------------------------------------
-static const int screenWidth = 1200;
-static const int screenHeight = 720;
+
+// Not static const for fullscreen option
+int screenWidth = 1200;
+int screenHeight = 720;
 
 static bool gameOver = false;
 static bool pause =  false;
@@ -73,6 +65,10 @@ static float alpha = 0.0f;
 static int activeEnemies = 0;
 static int enemiesKill = 0;
 static bool smooth = false;
+
+// Variables for moving animation 
+bool moving;
+int direction, frameCount, playerFrame;
 
 //------------------------------------------------------------------------------------
 // Module Functions Declaration (local)
@@ -95,7 +91,7 @@ int main(void)
     InitGame();
 
 #if defined(PLATFORM_WEB)
-    emscripten_set_main_loop(UpdateDrawFrame, 60, 1);
+    emscripten_set_main_loop(UpdateDrawFrame, 144, 1);
 #else
     SetTargetFPS(60);
     //--------------------------------------------------------------------------------------
@@ -139,13 +135,20 @@ void InitGame(void)
     alpha = 0;
 
     // Initialize player
-    player.rec.x =  20;
-    player.rec.y = 50;
-    player.rec.width = 20;
-    player.rec.height = 20;
-    player.speed.x = 5;
-    player.speed.y = 5;
-    player.color = BLACK;
+    player.playerSrc.x =  0;
+    player.playerSrc.y = 0;
+    player.playerSrc.width = 16;
+    player.playerSrc.height = 16.2;
+    player.playerDest.x =  100;
+    player.playerDest.y = 100;
+    player.playerDest.width = 34;
+    player.playerDest.height = 34;
+    player.origin.x = 0;
+    player.origin.y = 0;
+    player.speed.x = 4;
+    player.speed.y = 4;
+    player.color = BLUE;
+    player.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/walk.png");
 
     // Initialize enemies
     for (int i = 0; i < NUM_MAX_ENEMIES; i++)
@@ -163,8 +166,8 @@ void InitGame(void)
     // Initialize shoots
     for (int i = 0; i < NUM_SHOOTS; i++)
     {
-        shoot[i].rec.x = player.rec.x;
-        shoot[i].rec.y = player.rec.y + player.rec.height/4;
+        shoot[i].rec.x = player.playerDest.x;
+        shoot[i].rec.y = player.playerDest.y + player.playerDest.height/2;
         shoot[i].rec.width = 10;
         shoot[i].rec.height = 5;
         shoot[i].speed.x = 7;
@@ -177,6 +180,7 @@ void InitGame(void)
 // Update game (one frame)
 void UpdateGame(void)
 {
+
     if (!gameOver)
     {
         if (IsKeyPressed('P')) pause = !pause;
@@ -255,18 +259,56 @@ void UpdateGame(void)
             }
 
             // Player movement
-            if (IsKeyDown(KEY_RIGHT)) player.rec.x += player.speed.x;
-            if (IsKeyDown(KEY_LEFT)) player.rec.x -= player.speed.x;
-            if (IsKeyDown(KEY_UP)) player.rec.y -= player.speed.y;
-            if (IsKeyDown(KEY_DOWN)) player.rec.y += player.speed.y;
+            moving = false;
+
+            if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)){
+                player.playerDest.x += player.speed.x;
+                direction = 3;
+                moving = true;
+            } 
+
+            if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)){ 
+                player.playerDest.x -= player.speed.x;
+                direction = 2;
+                moving = true;
+            }
+
+            if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)){ 
+                player.playerDest.y -= player.speed.y;
+                direction = 1;
+                moving = true;
+            }
+
+            if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)){ 
+                player.playerDest.y += player.speed.y;
+                direction = 0;
+                moving = true;
+            }
+
+            player.playerSrc.y = 0;
+
+            if (moving){
+                if (frameCount % 10 == 1)
+                    playerFrame++;
+
+                player.playerSrc.y = player.playerSrc.width * playerFrame;
+            }
+
+            frameCount++;
+            // Reset the animation
+            if (playerFrame > 3)
+                playerFrame = 0;
+
+            player.playerSrc.x = player.playerSrc.width * direction;
+
 
             // Player collision with enemy
             for (int i = 0; i < activeEnemies; i++)
             {
-                if (CheckCollisionRecs(player.rec, enemy[i].rec)) gameOver = true;
+                if (CheckCollisionRecs(player.playerDest, enemy[i].rec)) gameOver = true;
             }
 
-             // Enemy behaviour
+            // Enemy behaviour
             for (int i = 0; i < activeEnemies; i++)
             {
                 if (enemy[i].active)
@@ -282,10 +324,10 @@ void UpdateGame(void)
             }
 
             // Wall behaviour
-            if (player.rec.x <= 0) player.rec.x = 0;
-            if (player.rec.x + player.rec.width >= screenWidth) player.rec.x = screenWidth - player.rec.width;
-            if (player.rec.y <= 0) player.rec.y = 0;
-            if (player.rec.y + player.rec.height >= screenHeight) player.rec.y = screenHeight - player.rec.height;
+            if (player.playerDest.x <= 0) player.playerDest.x = 0;
+            if (player.playerDest.x + player.playerDest.width >= screenWidth) player.playerDest.x = screenWidth - player.playerDest.width;
+            if (player.playerDest.y <= 0) player.playerDest.y = 0;
+            if (player.playerDest.y + player.playerDest.height >= screenHeight) player.playerDest.y = screenHeight - player.playerDest.height;
 
             // Shoot initialization
             if (IsKeyDown(KEY_SPACE))
@@ -296,8 +338,8 @@ void UpdateGame(void)
                 {
                     if (!shoot[i].active && shootRate%20 == 0)
                     {
-                        shoot[i].rec.x = player.rec.x;
-                        shoot[i].rec.y = player.rec.y + player.rec.height/4;
+                        shoot[i].rec.x = player.playerDest.x;
+                        shoot[i].rec.y = player.playerDest.y + player.playerDest.height/2;
                         shoot[i].active = true;
                         break;
                     }
@@ -357,7 +399,9 @@ void DrawGame(void)
 
         if (!gameOver)
         {
-            DrawRectangleRec(player.rec, player.color);
+            // Rectangle for tracking character position (testes!)
+            //DrawRectangle(player.playerDest.x, player.playerDest.y, player.playerDest.width, player.playerDest.height, BLUE);
+            DrawTexturePro(player.playerSprite, player.playerSrc, player.playerDest, player.origin, 0, WHITE);
 
             if (wave == FIRST) DrawText("FIRST WAVE", screenWidth/2 - MeasureText("FIRST WAVE", 40)/2, screenHeight/2 - 40, 40, Fade(BLACK, alpha));
             else if (wave == SECOND) DrawText("SECOND WAVE", screenWidth/2 - MeasureText("SECOND WAVE", 40)/2, screenHeight/2 - 40, 40, Fade(BLACK, alpha));
@@ -388,6 +432,8 @@ void DrawGame(void)
 void UnloadGame(void)
 {
     // TODO: Unload all dynamic loaded data (textures, sounds, models...)
+    UnloadTexture(player.playerSprite);
+
 }
 
 // Update and Draw (one frame)
