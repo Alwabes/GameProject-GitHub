@@ -91,8 +91,10 @@ int direction, frameCount, playerFrame;
 
 // Player's life count
 int count = 2;
-int invencibleCount = 0;
+int invencibleCount;
+int damageAnimCount;
 bool colision = true;
+bool damageAnim = false;
 
 // timer variables
 int timerCount = 0;
@@ -158,8 +160,14 @@ void InitGame(void)
 {
     // Initialize audio variables
     backgroundMusic.song = LoadMusicStream("Assets/NinjaAdventure/Musics/4 - Village.ogg");
+    SetMusicVolume(backgroundMusic.song,  0.3);
+    
     gameOverSound.sound = LoadSound("Assets/NinjaAdventure/Sounds/Game/GameOver.wav");
+    SetSoundVolume(gameOverSound.sound, 0.5);
+
     damageTaken.sound = LoadSound("Assets/NinjaAdventure/Sounds/Game/Hit4.wav");
+    SetSoundVolume(damageTaken.sound, 0.4);
+
     PlayMusicStream(backgroundMusic.song);
 
     // Initialize game variables
@@ -394,14 +402,29 @@ void UpdateGame(void)
                 if (alive) {
                     if (CheckCollisionRecs(player.playerDest, enemy[i].rec) && colision){
                         playerLife[count].lifeSrc.x = playerLife[count].lifeSrc.width * 4;
+                        PlaySound(damageTaken.sound);
+                        
                         count--;
                         colision = false;
+                        damageAnim = true;
+                        damageAnimCount = 0;
                         invencibleCount = 0;
-                        PlaySound(damageTaken.sound);
                     }
 
-                    invencibleCount++;
+                    if (damageAnim){
+                        if (damageAnimCount == 0 || damageAnimCount == 200)
+                            player.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/Damage.png");
+                        else if (damageAnimCount == 100 || damageAnimCount == 300)
+                            player.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/walk.png");
 
+                        damageAnimCount++;
+
+                        if (damageAnimCount > 300)
+                            damageAnim = false;
+                    }
+
+                    // Player can't take damage while "invencible" is activated
+                    invencibleCount++;
                     if (invencibleCount > 300){
                         colision = true;
                     }
@@ -507,6 +530,7 @@ void UpdateGame(void)
             alive = true;
             count = 2;
             timerCount = 0;
+            damageAnim = false;
         }
     }
 }
