@@ -15,7 +15,7 @@ O ambiente agora será representado por um background e música temática.
 
 #**NARRATIVA** <br/>
 "Este planeta tão vasto e cheio de segredos, como foi acabar assim?". É um situação em que nenhuma pessoa tem o que chamar de lar, estamos no reino dos monstros.
-Você é a última esperança do seu vilarejo. Um ninja capaz de salvar seu povo e lutar contra os inimigos que tentar destruir seu lar. Muitos guerreiros já estão caídos, não resta muito tempo... 
+Você é a última esperança do seu vilarejo. Um ninja capaz de salvar seu povo e lutar contra os inimigos que tentam destruir sua vila. Muitos guerreiros já estão caídos, não resta muito tempo... 
 Agora é você contra o mundo! Proteja sua casa e derrote todas as hordas que estão por vir. Não há mais esperanças para a Terra, por hora, o que nos resta é lutar.
 
 .<br/>
