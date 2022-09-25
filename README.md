@@ -10,19 +10,25 @@ O ambiente agora será representado por um background e música temática.
 - _inimigos_ – indefinido
 - _ambiente_ – indefinido
 
-
+.
+.
+.
 
 #**NARRATIVA** 
 "Este planeta tão vasto e cheio de segredos, como foi acabar assim?". É um situação em que nenhuma pessoa tem o que chamar de lar, estamos no reino dos monstros.
 Você é a última esperança do seu vilarejo. Um ninja capaz de salvar seu povo e lutar contra os inimigos que tentar destruir seu lar. Muitos guerreiros já estão caídos, não resta muito tempo... 
 Agora é você contra o mundo! Proteja sua casa e derrote todas as hordas que estão por vir. Não há mais esperanças para a Terra, por hora, o que nos resta é lutar.
 
-
+.
+.
+.
 
 #**OBJETIVOS** 
 Sobreviver o máximo possível, sem limite de tempo, às hordas de inimigos que avançam em sua direção. O jogo é limitado apenas pelos níveis e marca a pontuação de acordo com o número de inimigos eliminados. Ao chegar na fase final, o jogador receberá a mensagem de missão concluída. A pontuação contabilizará no ranking caso esta esteja acima da última colocada.
 
-
+.
+.
+.
 
 #**REGRAS** 
 •	O jogador possui 3 vidas.
@@ -31,7 +37,9 @@ Sobreviver o máximo possível, sem limite de tempo, às hordas de inimigos que 
 •	Para passar para o próximo estágio é necessário cumprir “missões”, não sendo obrigatório eliminar todos os inimigos.
 [...]
 
-
+.
+.
+.
 
 #**CÁLCULO DE PONTUAÇÃO**
 A pontuação é calculada pela eliminação dos inimigos e níveis alcançados.
