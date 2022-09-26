@@ -45,11 +45,13 @@ typedef struct Enemy{
 } Enemy;
 
 typedef struct Shoot{
+    Rectangle shootSrc;
     Rectangle rec;
+    Vector2 origin;
     Vector2 speed;
     bool active;
-    Color color;
     int bulletDirection;
+    Texture2D shootSprite;
 } Shoot;
 
 typedef struct Song{
@@ -172,8 +174,8 @@ int main(void)
 
                 framesCounter++; 
 
-                // Wait for 4 seconds (240 frames) before jumping to TITLE screen
-                if (framesCounter == 240)
+                // Wait for 3 seconds (180 frames) before jumping to TITLE screen
+                if (framesCounter == 180)
                 {
                     currentScreen = TITLE;
                 }
@@ -389,14 +391,20 @@ void InitGame(void)
     // Initialize shoots
     for (int i = 0; i < NUM_SHOOTS; i++)
     {
+        shoot[i].shootSrc.x = 0;
+        shoot[i].shootSrc.y = 0;
+        shoot[i].shootSrc.width = 16;
+        shoot[i].shootSrc.height = 16;
         shoot[i].rec.x = player.playerDest.x + player.playerDest.width/2.5;
         shoot[i].rec.y = player.playerDest.y + player.playerDest.height/2;
-        shoot[i].rec.width = 7;
-        shoot[i].rec.height = 7;
-        shoot[i].speed.x = 7;
-        shoot[i].speed.y = 7;
+        shoot[i].rec.width = 16;
+        shoot[i].rec.height = 16;
+        shoot[i].origin.x = 0;
+        shoot[i].origin.y = 0;
+        shoot[i].speed.x = 6;
+        shoot[i].speed.y = 6;
         shoot[i].active = false;
-        shoot[i].color = MAROON;
+        shoot[i].shootSprite = LoadTexture ("Assets/NinjaAdventure/HUD/Shuriken.png");
     }
 }
 
@@ -598,14 +606,20 @@ void UpdateGame(void)
                     // Damage "animation" indicator
                     if (damageAnim){
                         if (damageAnimCount == 0 || damageAnimCount == 200)
+                        {
                             player.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/Damage.png");
+                        }
                         else if (damageAnimCount == 100 || damageAnimCount == 300)
+                        {
                             player.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/walk.png");
+                        }
 
                         damageAnimCount++;
 
-                        if (damageAnimCount > 300)
+                        if (damageAnimCount > 300){
                             damageAnim = false;
+                            damageAnimCount = 0;
+                        }
                     }
 
                     // Player can't take damage while "invencible" is activated
@@ -628,8 +642,9 @@ void UpdateGame(void)
 
                     timerCount++;
 
-                    if (timerCount > 500)
+                    if (timerCount > 500){
                         gameOver = true;
+                    }
                 }
 
             }
@@ -827,17 +842,20 @@ void UpdateGame(void)
                                 shootRate = 0;
                             }
 
-                            if (shoot[i].rec.x < -shoot[i].rec.width){
+                            if (shoot[i].rec.x < -shoot[i].rec.width)
+                            {
                                 shoot[i].active = false;
                                 shootRate = 0;
                             }
 
-                            if (shoot[i].rec.y < -shoot[i].rec.height){
+                            if (shoot[i].rec.y < -shoot[i].rec.height)
+                            {
                                 shoot[i].active = false;
                                 shootRate = 0;
                             }
 
-                            if (shoot[i].rec.y + shoot[i].rec.height >= GetScreenHeight()){
+                            if (shoot[i].rec.y + shoot[i].rec.height >= GetScreenHeight())
+                            {
                                 shoot[i].active = false;
                                 shootRate = 0;
                             }
@@ -965,7 +983,8 @@ void DrawGame(void)
 
             for (int i = 0; i < NUM_SHOOTS; i++)
             {
-                if (shoot[i].active) DrawRectangleRec(shoot[i].rec, shoot[i].color);
+                // Draw Shuriken (character basic atk)
+                if (shoot[i].active) DrawTexturePro(shoot[i].shootSprite, shoot[i].shootSrc, shoot[i].rec, shoot[i].origin, 0, WHITE);
             }
 
             DrawText(TextFormat("%04i", score), 20, 20, 40, GRAY);
@@ -1036,5 +1055,11 @@ void UnloadGame(void)
     UnloadSound(gameOverSound.sound);
     UnloadSound(damageTaken.sound);
     UnloadSound(fxButton);
+
+     for (int i = 0; i < NUM_SHOOTS; i++)
+    {
+        // Unload all shurikens
+        UnloadTexture(shoot[i].shootSprite);
+    }
 }
 
