@@ -40,6 +40,7 @@ typedef struct Enemy{
     Rectangle rec;
     Vector2 speed;
     bool active;
+    bool free; // for walking freely
     Color color;
     int side; // 0: esquerda | 1: direita;
 } Enemy;
@@ -344,31 +345,48 @@ void InitGame(void)
     playerLife[1].origin.y = 0;
 
     // Initialize right side enemies
-    for (int i = 0; i < NUM_MAX_ENEMIES; i += 2)
+    for (int i = 0; i < NUM_MAX_ENEMIES; i += 3)
     {
         enemy[i].rec.width = 10;
         enemy[i].rec.height = 10;
         enemy[i].rec.x = GetRandomValue(GetScreenWidth(), GetScreenWidth() + 1000);
         enemy[i].rec.y = GetRandomValue(0, GetScreenHeight() - enemy[i].rec.height);
-        enemy[i].speed.x = 5;
-        enemy[i].speed.y = 5;
+        enemy[i].speed.x = 1.2;
+        enemy[i].speed.y = 1.2;
         enemy[i].active = true;
         enemy[i].color = GRAY;
         enemy[i].side = 1;
+        enemy[i].free = false;
     }
 
     // Initialize left side enemies
-    for (int i = 1; i < NUM_MAX_ENEMIES; i += 2)
+    for (int i = 1; i < NUM_MAX_ENEMIES; i += 3)
     {
         enemy[i].rec.width = 10;
         enemy[i].rec.height = 10;
         enemy[i].rec.x = GetRandomValue(-1000, 0);
         enemy[i].rec.y = GetRandomValue(0, GetScreenHeight() - enemy[i].rec.height);
-        enemy[i].speed.x = 5;
-        enemy[i].speed.y = 5;
+        enemy[i].speed.x = 1.2;
+        enemy[i].speed.y = 1.2;
         enemy[i].active = true;
         enemy[i].color = GRAY;
         enemy[i].side = 0;
+        enemy[i].free = false;
+    }
+
+    // Initialize bottom side enemies
+    for (int i = 2; i < NUM_MAX_ENEMIES; i += 3)
+    {
+        enemy[i].rec.width = 10;
+        enemy[i].rec.height = 10;
+        enemy[i].rec.x = GetRandomValue(0, GetScreenWidth() - enemy[i].rec.width);
+        enemy[i].rec.y = GetRandomValue(GetScreenHeight(), GetScreenHeight() + 1000);
+        enemy[i].speed.x = 1.2;
+        enemy[i].speed.y = 1.2;
+        enemy[i].active = true;
+        enemy[i].color = GRAY;
+        enemy[i].side = 0;
+        enemy[i].free = false;
     }
 
     // Initialize shoots
@@ -578,33 +596,63 @@ void UpdateGame(void)
 
             }
 
+            // Enemies will only follow after a certain time 
+
             // Right enemy behaviour
-             for (int i = 0; i < activeEnemies; i += 2)
+            for (int i = 0; i < activeEnemies; i += 3)
             {
                 if (enemy[i].active)
                 {
-                    enemy[i].rec.x -= enemy[i].speed.x;
-
-                    if (enemy[i].rec.x < 0)
-                    {
-                        enemy[i].rec.x = GetRandomValue(GetScreenWidth(), GetScreenWidth() + 1000);
-                        enemy[i].rec.y = GetRandomValue(0, GetScreenHeight() - enemy[i].rec.height);
-                    }
+                    if (enemy[i].rec.x > GetScreenWidth() - 25)
+                        enemy[i].rec.x -= enemy[i].speed.x;
+                    if (enemy[i].rec.x < GetScreenWidth() - 25)
+                        enemy[i].free = true;
                 }
             }
 
             // Left enemy behaviour
-            for (int i = 1; i < activeEnemies; i += 2)
+            for (int i = 1; i < activeEnemies; i += 3)
             {
                 if (enemy[i].active)
                 {
-                    enemy[i].rec.x += enemy[i].speed.x;
+                    if (enemy[i].rec.x < 25)
+                        enemy[i].rec.x += enemy[i].speed.x;
 
-                    if (enemy[i].rec.x > GetScreenWidth())
-                    {
-                        enemy[i].rec.x = GetRandomValue(-1000, 0);
-                        enemy[i].rec.y = GetRandomValue(0, GetScreenHeight() - enemy[i].rec.height);
-                    }
+                    if (enemy[i].rec.x > 25)
+                        enemy[i].free = true;
+                }
+            }
+
+            
+            // Right enemy behaviour
+            for (int i = 2; i < activeEnemies; i += 3)
+            {
+                if (enemy[i].active)
+                {
+                    if (enemy[i].rec.y > GetScreenHeight() - 25)
+                        enemy[i].rec.x -= enemy[i].speed.x;
+                    if (enemy[i].rec.x < GetScreenHeight() - 25)
+                        enemy[i].free = true;
+                }
+            }
+
+            // General enemy behaviour (follow player)
+            for (int i = 0; i < activeEnemies; i ++)
+            {
+                if (enemy[i].active && enemy[i].free)
+                {   
+                    if (player.playerDest.x < enemy[i].rec.x)
+                        enemy[i].rec.x -= enemy[i].speed.x;
+
+                    if (player.playerDest.x > enemy[i].rec.x)
+                        enemy[i].rec.x += enemy[i].speed.x;
+
+                    if (player.playerDest.y < enemy[i].rec.y)
+                        enemy[i].rec.y -= enemy[i].speed.y;
+
+                    if (player.playerDest.y > enemy[i].rec.y)
+                        enemy[i].rec.y += enemy[i].speed.y;
+
                 }
             }
 
