@@ -269,15 +269,15 @@ void InitGame(void)
 
     // Initialize Button variables
     fxButton = LoadSound("Assets/NinjaAdventure/Sounds/Menu/Menu9.wav");   // Load button sound
-    button = LoadTexture("Assets/NinjaAdventure/HUD/Play_Unpressed.png"); // Load button texture
+    button = LoadTexture("Assets/NinjaAdventure/HUD/play_c.png"); // Load button texture
     sourceRec.x = 0;
     sourceRec.y = 0;
     sourceRec.width = 160;
-    sourceRec.height = 81; 
+    sourceRec.height = 52; 
     btnBounds.x = GetScreenWidth()/1.985 - button.width/2; 
-    btnBounds.y = GetScreenHeight()/1.85 + button.height/2;
+    btnBounds.y = GetScreenHeight()/1.65 + button.height/2;
     btnBounds.width = 160;
-    btnBounds.height = 81;
+    btnBounds.height = 52;
 
     // Initialize game variables
     shootRate = 0;
@@ -703,7 +703,7 @@ void UpdateGame(void)
             // Shoot initialization
             if (IsKeyDown(KEY_SPACE))
             {
-                shootRate += 5;
+                shootRate += 2;
 
                 for (int i = 0; i < NUM_SHOOTS; i++)
                 {
@@ -714,7 +714,7 @@ void UpdateGame(void)
                         shoot[i].active = true;
 
                         // Bullet Movement
-                        // Using variable direction to see where's the player shooting
+                        // Using variable direction to see where's the player shooting.
                         // Using bulletDirection to define where's the bullet going.
                         
                         switch (direction){
@@ -765,20 +765,23 @@ void UpdateGame(void)
                 if (shoot[i].active)
                 {
                     // bulletDirection:
-
                     switch (shoot[i].bulletDirection){
+                        // [Top-Left]
                         case 7: shoot[i].rec.x -= shoot[i].speed.x;
                                 shoot[i].rec.y -= shoot[i].speed.y;
                                 break;
 
+                        // [Top-Right]
                         case 6: shoot[i].rec.x += shoot[i].speed.x;
                                 shoot[i].rec.y -= shoot[i].speed.y;
                                 break;
 
+                        // [Bottom-Left]
                         case 5: shoot[i].rec.x -= shoot[i].speed.x;
                                 shoot[i].rec.y += shoot[i].speed.y;
                                 break;
 
+                        // [Bottom-Right]
                         case 4: shoot[i].rec.x += shoot[i].speed.x;
                                 shoot[i].rec.y += shoot[i].speed.y;
                                 break;
@@ -891,7 +894,7 @@ void UpdateTitle(void){
     PlayMusicStream(backgroundMenu.song);
 
     btnBounds.x = GetScreenWidth()/1.985 - button.width/2; 
-    btnBounds.y = GetScreenHeight()/1.85 + button.height/2;
+    btnBounds.y = GetScreenHeight()/1.65 + button.height/2;
 
     mousePoint = GetMousePosition();
     btnAction = false;
@@ -900,7 +903,7 @@ void UpdateTitle(void){
     if (CheckCollisionPointRec(mousePoint, btnBounds))
     {
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
-            button = LoadTexture("Assets/NinjaAdventure/HUD/Play_Pressed_n.png");
+            button = LoadTexture("Assets/NinjaAdventure/HUD/play_d.png");
         }
 
         if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) 
@@ -908,7 +911,7 @@ void UpdateTitle(void){
     }
     else 
     {
-        button = LoadTexture("Assets/NinjaAdventure/HUD/Play_Unpressed_n.png");
+        button = LoadTexture("Assets/NinjaAdventure/HUD/play_c.png");
     }
 
     if (btnAction)
