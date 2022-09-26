@@ -42,7 +42,6 @@ typedef struct Enemy{
     bool active;
     bool free; // for walking freely
     Color color;
-    int side; // 0: esquerda | 1: direita;
 } Enemy;
 
 typedef struct Shoot{
@@ -50,6 +49,7 @@ typedef struct Shoot{
     Vector2 speed;
     bool active;
     Color color;
+    int bulletDirection;
 } Shoot;
 
 typedef struct Song{
@@ -302,8 +302,8 @@ void InitGame(void)
     player.playerDest.height = 34;
     player.origin.x = 0;
     player.origin.y = 0;
-    player.speed.x = 4;
-    player.speed.y = 4;
+    player.speed.x = 3.5;
+    player.speed.y = 3.5;
     player.color = BLUE;
     player.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/walk.png");
 
@@ -355,7 +355,6 @@ void InitGame(void)
         enemy[i].speed.y = 1.2;
         enemy[i].active = true;
         enemy[i].color = GRAY;
-        enemy[i].side = 1;
         enemy[i].free = false;
     }
 
@@ -370,7 +369,6 @@ void InitGame(void)
         enemy[i].speed.y = 1.2;
         enemy[i].active = true;
         enemy[i].color = GRAY;
-        enemy[i].side = 0;
         enemy[i].free = false;
     }
 
@@ -385,19 +383,18 @@ void InitGame(void)
         enemy[i].speed.y = 1.2;
         enemy[i].active = true;
         enemy[i].color = GRAY;
-        enemy[i].side = 0;
         enemy[i].free = false;
     }
 
     // Initialize shoots
     for (int i = 0; i < NUM_SHOOTS; i++)
     {
-        shoot[i].rec.x = player.playerDest.x;
+        shoot[i].rec.x = player.playerDest.x + player.playerDest.width/2.5;
         shoot[i].rec.y = player.playerDest.y + player.playerDest.height/2;
-        shoot[i].rec.width = 10;
-        shoot[i].rec.height = 5;
+        shoot[i].rec.width = 7;
+        shoot[i].rec.height = 7;
         shoot[i].speed.x = 7;
-        shoot[i].speed.y = 0;
+        shoot[i].speed.y = 7;
         shoot[i].active = false;
         shoot[i].color = MAROON;
     }
@@ -624,7 +621,7 @@ void UpdateGame(void)
             }
 
             
-            // Right enemy behaviour
+            // Bottom enemy behaviour
             for (int i = 2; i < activeEnemies; i += 3)
             {
                 if (enemy[i].active)
@@ -671,10 +668,26 @@ void UpdateGame(void)
                 {
                     if (!shoot[i].active && shootRate%20 == 0)
                     {
-                        shoot[i].rec.x = player.playerDest.x;
+                        shoot[i].rec.x = player.playerDest.x + player.playerDest.width/2.5;
                         shoot[i].rec.y = player.playerDest.y + player.playerDest.height/2;
                         shoot[i].active = true;
-                        break;
+
+                        // Bullet Movement
+                        // Using variable direction to see where's the player shooting
+                        // Using bulletDirection to define where's the bullet going.
+                        if (direction == 0)
+                            shoot[i].bulletDirection = 0; 
+
+                        if (direction == 1)
+                            shoot[i].bulletDirection = 1; 
+
+                        if (direction == 2)
+                            shoot[i].bulletDirection = 2; 
+
+                        if (direction == 3)
+                            shoot[i].bulletDirection = 3;
+
+                        break; 
                     }
                 }
             }
@@ -684,9 +697,23 @@ void UpdateGame(void)
             {
                 if (shoot[i].active)
                 {
-                    // Movement
-                    shoot[i].rec.x += shoot[i].speed.x;
+                    // bulletDirection: 
+                    // [Bottom]
+                    if (shoot[i].bulletDirection == 0)
+                        shoot[i].rec.y += shoot[i].speed.y;
 
+                    // [Top]
+                    if (shoot[i].bulletDirection == 1)
+                        shoot[i].rec.y -= shoot[i].speed.y;
+
+                    // [Left]
+                    if (shoot[i].bulletDirection == 2)
+                        shoot[i].rec.x -= shoot[i].speed.x;
+
+                    // [Right]
+                    if (shoot[i].bulletDirection == 3)
+                        shoot[i].rec.x += shoot[i].speed.x;
+                
                     // Collision with enemy
                     for (int j = 0; j < activeEnemies; j++)
                     {
@@ -707,6 +734,22 @@ void UpdateGame(void)
                                 shoot[i].active = false;
                                 shootRate = 0;
                             }
+
+                            if (shoot[i].rec.x < -shoot[i].rec.width){
+                                shoot[i].active = false;
+                                shootRate = 0;
+                            }
+
+                            if (shoot[i].rec.y < -shoot[i].rec.height){
+                                shoot[i].active = false;
+                                shootRate = 0;
+                            }
+
+                            if (shoot[i].rec.y + shoot[i].rec.height >= GetScreenHeight()){
+                                shoot[i].active = false;
+                                shootRate = 0;
+                            }
+                            
                         }
                     }
                 }
