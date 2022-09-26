@@ -90,7 +90,7 @@ static bool smooth = false;
 
 // Moving animation variables
 bool moving, alive = true;
-int direction, frameCount, playerFrame;
+int direction, dirImg, frameCount, playerFrame;
 
 // Player's life count
 int count = 2;
@@ -497,27 +497,68 @@ void UpdateGame(void)
             moving = false;
 
             if (alive){
-                if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)){
+
+                if (IsKeyDown(KEY_UP) && IsKeyDown(KEY_LEFT))
+                {
+                    player.playerDest.x -= player.speed.x;
+                    player.playerDest.y -= player.speed.y;
+                    direction = 7;
+                    dirImg = 1;
+                    moving = true;
+                }
+
+                else if (IsKeyDown(KEY_UP) && IsKeyDown(KEY_RIGHT))
+                {
+                    player.playerDest.x += player.speed.x;
+                    player.playerDest.y -= player.speed.y;
+                    direction = 6;
+                    dirImg = 1;
+                    moving = true;
+                }
+
+                else if (IsKeyDown(KEY_DOWN) && IsKeyDown(KEY_LEFT))
+                {
+                    player.playerDest.x -= player.speed.x;
+                    player.playerDest.y += player.speed.y;
+                    direction = 5;
+                    dirImg = 0;
+                    moving = true;
+                }
+
+                else if (IsKeyDown(KEY_DOWN) && IsKeyDown(KEY_RIGHT))
+                {
+                    player.playerDest.x += player.speed.x;
+                    player.playerDest.y += player.speed.y;
+                    direction = 4;
+                    dirImg = 0;
+                    moving = true;
+                }
+
+                else if (IsKeyDown(KEY_RIGHT)){
                     player.playerDest.x += player.speed.x;
                     direction = 3;
+                    dirImg = 3;
                     moving = true;
                 }
 
-                if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)){
+                else if (IsKeyDown(KEY_LEFT)){
                     player.playerDest.x -= player.speed.x;
                     direction = 2;
+                    dirImg = 2;
                     moving = true;
                 }
 
-                if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)){
+                else if (IsKeyDown(KEY_UP)){
                     player.playerDest.y -= player.speed.y;
                     direction = 1;
+                    dirImg = 1;
                     moving = true;
                 }
 
-                if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)){
+                else if (IsKeyDown(KEY_DOWN)){
                     player.playerDest.y += player.speed.y;
                     direction = 0;
+                    dirImg = 0;
                     moving = true;
                 }
             }
@@ -537,7 +578,7 @@ void UpdateGame(void)
             if (playerFrame > 3)
                 playerFrame = 0;
 
-            player.playerSrc.x = player.playerSrc.width * direction;
+            player.playerSrc.x = player.playerSrc.width * dirImg;
 
             // Player collision with enemy
             for (int i = 0; i < activeEnemies; i++)
@@ -675,17 +716,43 @@ void UpdateGame(void)
                         // Bullet Movement
                         // Using variable direction to see where's the player shooting
                         // Using bulletDirection to define where's the bullet going.
-                        if (direction == 0)
-                            shoot[i].bulletDirection = 0; 
+                        
+                        switch (direction){
+                            case 7: 
+                                shoot[i].bulletDirection = 7;
+                                break;
 
-                        if (direction == 1)
-                            shoot[i].bulletDirection = 1; 
+                            case 6: 
+                                shoot[i].bulletDirection = 6;
+                                break;
 
-                        if (direction == 2)
-                            shoot[i].bulletDirection = 2; 
+                            case 5: 
+                                shoot[i].bulletDirection = 5;
+                                break;
 
-                        if (direction == 3)
-                            shoot[i].bulletDirection = 3;
+                            case 4: 
+                                shoot[i].bulletDirection = 4;
+                                break;
+
+                            case 3: 
+                                shoot[i].bulletDirection = 3;
+                                break;
+
+                            case 2: 
+                                shoot[i].bulletDirection = 2;
+                                break;
+
+                            case 1: 
+                                shoot[i].bulletDirection = 1;
+                                break;
+
+                            case 0: 
+                                shoot[i].bulletDirection = 0;
+                                break;
+
+                            default:
+                                break;
+                        }
 
                         break; 
                     }
@@ -697,23 +764,45 @@ void UpdateGame(void)
             {
                 if (shoot[i].active)
                 {
-                    // bulletDirection: 
-                    // [Bottom]
-                    if (shoot[i].bulletDirection == 0)
-                        shoot[i].rec.y += shoot[i].speed.y;
+                    // bulletDirection:
 
-                    // [Top]
-                    if (shoot[i].bulletDirection == 1)
-                        shoot[i].rec.y -= shoot[i].speed.y;
+                    switch (shoot[i].bulletDirection){
+                        case 7: shoot[i].rec.x -= shoot[i].speed.x;
+                                shoot[i].rec.y -= shoot[i].speed.y;
+                                break;
 
-                    // [Left]
-                    if (shoot[i].bulletDirection == 2)
-                        shoot[i].rec.x -= shoot[i].speed.x;
+                        case 6: shoot[i].rec.x += shoot[i].speed.x;
+                                shoot[i].rec.y -= shoot[i].speed.y;
+                                break;
 
-                    // [Right]
-                    if (shoot[i].bulletDirection == 3)
-                        shoot[i].rec.x += shoot[i].speed.x;
-                
+                        case 5: shoot[i].rec.x -= shoot[i].speed.x;
+                                shoot[i].rec.y += shoot[i].speed.y;
+                                break;
+
+                        case 4: shoot[i].rec.x += shoot[i].speed.x;
+                                shoot[i].rec.y += shoot[i].speed.y;
+                                break;
+
+                        // [Right]
+                        case 3: shoot[i].rec.x += shoot[i].speed.x;
+                                break;
+
+                        // [Left]
+                        case 2: shoot[i].rec.x -= shoot[i].speed.x;
+                                break;
+
+                        // [Top]
+                        case 1: shoot[i].rec.y -= shoot[i].speed.y;
+                                break;
+
+                        // [Bottom]
+                        case 0: shoot[i].rec.y += shoot[i].speed.y;
+                                break;
+
+                        default: 
+                                break;
+                    }
+
                     // Collision with enemy
                     for (int j = 0; j < activeEnemies; j++)
                     {
