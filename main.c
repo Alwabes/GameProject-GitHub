@@ -51,6 +51,7 @@ typedef struct Shoot{
     Vector2 speed;
     bool active;
     int bulletDirection;
+    int bulletFrame;
     Texture2D shootSprite;
 } Shoot;
 
@@ -90,9 +91,10 @@ static int activeEnemies = 0;
 static int enemiesKill = 0;
 static bool smooth = false;
 
-// Moving animation variables
-bool moving, alive = true;
-int direction, dirImg, frameCount, playerFrame;
+// Player's moving animation
+bool moving; 
+bool alive = true;
+int direction, dirImg, playerFrame, frameCount;
 
 // Player's life count
 int count = 2;
@@ -113,7 +115,7 @@ SoundEffect damageTaken = { 0 };
 // Button variables
 Sound fxButton; 
 Texture2D button;
-Rectangle sourceRec; // Based on size of image
+Rectangle sourceRec; 
 Rectangle btnBounds;
 bool btnAction = false; 
 bool isPressed = false;
@@ -401,10 +403,11 @@ void InitGame(void)
         shoot[i].rec.height = 16;
         shoot[i].origin.x = 0;
         shoot[i].origin.y = 0;
-        shoot[i].speed.x = 6;
-        shoot[i].speed.y = 6;
+        shoot[i].speed.x = 7;
+        shoot[i].speed.y = 7;
+        shoot[i].bulletFrame = 0;
         shoot[i].active = false;
-        shoot[i].shootSprite = LoadTexture ("Assets/NinjaAdventure/HUD/Shuriken.png");
+        shoot[i].shootSprite = LoadTexture ("Assets/NinjaAdventure/HUD/Shuriken_anim.png");
     }
 }
 
@@ -413,6 +416,9 @@ void InitGame(void)
 //------------------------------------------------------------------------------------
 void UpdateGame(void)
 {
+
+    // Time counter (60|1sec)
+    frameCount++;
 
     // Adjusting visual elements on resizabled window 
     // !player's life
@@ -430,6 +436,7 @@ void UpdateGame(void)
 
         if (!pause)
         {
+
             switch (wave)
             {
                 case FIRST:
@@ -570,7 +577,17 @@ void UpdateGame(void)
                     moving = true;
                 }
             }
+            
+            // In case the player is moving diagonaly and stop, shoot won't bug
+            if (!moving){
+                if (direction == 4 || direction == 5)
+                    direction = 0;
+                
+                if (direction == 6 || direction == 7)
+                    direction = 1;
+            }
 
+            // Player's movement animation
             player.playerSrc.y = 0;
 
             if (moving){
@@ -579,8 +596,6 @@ void UpdateGame(void)
 
                 player.playerSrc.y = player.playerSrc.width * playerFrame;
             }
-
-            frameCount++;
 
             // Reset the animation
             if (playerFrame > 3)
@@ -595,7 +610,6 @@ void UpdateGame(void)
                     if (CheckCollisionRecs(player.playerDest, enemy[i].rec) && colision){
                         playerLife[count].lifeSrc.x = (playerLife[count].lifeSrc.width * 4) - 0.8;
                         PlaySound(damageTaken.sound);
-                        
                         count--;
                         colision = false;
                         damageAnim = true;
@@ -779,6 +793,15 @@ void UpdateGame(void)
             {
                 if (shoot[i].active)
                 {
+
+                    if (frameCount % 6 == 0){
+                        shoot[i].shootSrc.x = shoot[i].bulletFrame * 20;
+                        shoot[i].bulletFrame++;
+                                                  
+                        if (shoot[i].bulletFrame > 3)
+                            shoot[i].bulletFrame = 0;                     
+                    }
+
                     // bulletDirection:
                     switch (shoot[i].bulletDirection){
                         // [Top-Left]
@@ -819,6 +842,7 @@ void UpdateGame(void)
 
                         default: 
                                 break;
+
                     }
 
                     // Collision with enemy
@@ -864,6 +888,7 @@ void UpdateGame(void)
                     }
                 }
             }
+
         }
     }
     else
@@ -959,7 +984,7 @@ void DrawTitle(void)
 //------------------------------------------------------------------------------------
 void DrawGame(void)
 {
-    ClearBackground(RAYWHITE);
+    ClearBackground(DARKGRAY);
 
     if (!gameOver)
         {
