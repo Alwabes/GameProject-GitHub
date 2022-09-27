@@ -21,37 +21,36 @@ typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, ENDING } GameScreen;
 typedef enum { FIRST = 0, SECOND, THIRD } EnemyWave;
 
 typedef struct Player{
-    Rectangle playerDest;
     Rectangle playerSrc;
+    Rectangle playerDest;
     Vector2 origin;
     Vector2 speed;
-    Color color;
     Texture2D playerSprite;
 } Player;
 
 typedef struct Life{
-    Texture2D life;
-    Rectangle lifeDest;
     Rectangle lifeSrc;
+    Rectangle lifeDest;
     Vector2 origin;
+    Texture2D life;
 } Life;
 
 typedef struct Enemy{
-    Rectangle rec;
-    Vector2 speed;
     bool active;
     bool free; // for walking freely
+    Rectangle rec;
+    Vector2 speed;
     Color color;
 } Enemy;
 
 typedef struct Shoot{
+    bool active;
+    int bulletDirection;
+    int bulletFrame;
     Rectangle shootSrc;
     Rectangle rec;
     Vector2 origin;
     Vector2 speed;
-    bool active;
-    int bulletDirection;
-    int bulletFrame;
     Texture2D shootSprite;
 } Shoot;
 
@@ -64,6 +63,15 @@ typedef struct SoundEffect{
     bool soundPaused;
     Sound sound;
 } SoundEffect;
+
+typedef struct Tile{
+    int *tileMap;
+    char **srcMap;
+    Rectangle tileSrc;
+    Rectangle tileDest;
+    int mapW;
+    int mapH;
+} Tile;
 
 //------------------------------------------------------------------------------------
 // Global Variables Declaration
@@ -79,6 +87,7 @@ static int score = 0;
 static bool victory = false;
 
 static Player player = { 0 };
+static Player shadow = { 0 };
 static Life playerLife[3] = { 0 };
 static Enemy enemy[NUM_MAX_ENEMIES] = { 0 };
 static Shoot shoot[NUM_SHOOTS] = { 0 };
@@ -127,6 +136,9 @@ Texture2D backgroundLogo, backgroundTitle;
 Rectangle bgSrc;
 Rectangle bgDest;
 Vector2 bgOrigin;
+
+// Tile mapping variables
+Tile tile;
 
 //------------------------------------------------------------------------------------
 // Module Functions Declaration (local)
@@ -260,10 +272,10 @@ void InitGame(void)
 
     // Initialize audio variables
     backgroundMusic.song = LoadMusicStream("Assets/NinjaAdventure/Musics/4 - Village.ogg");
-    SetMusicVolume(backgroundMusic.song,  0.3);
+    SetMusicVolume(backgroundMusic.song,  0.2);
 
     backgroundMenu.song = LoadMusicStream("Assets/NinjaAdventure/Musics/1 - Adventure Begin.ogg");
-    SetMusicVolume(backgroundMenu.song,  0.3);
+    SetMusicVolume(backgroundMenu.song,  0.2);
     
     gameOverSound.sound = LoadSound("Assets/NinjaAdventure/Sounds/Game/GameOver.wav");
     SetSoundVolume(gameOverSound.sound, 0.5);
@@ -299,17 +311,31 @@ void InitGame(void)
     player.playerSrc.x =  0;
     player.playerSrc.y = 0;
     player.playerSrc.width = 16;
-    player.playerSrc.height = 16.2;
-    player.playerDest.x =  100;
-    player.playerDest.y = 100;
-    player.playerDest.width = 34;
-    player.playerDest.height = 34;
-    player.origin.x = 0;
-    player.origin.y = 0;
-    player.speed.x = 3.5;
-    player.speed.y = 3.5;
-    player.color = BLUE;
+    player.playerSrc.height = 16;
+    player.playerDest.x = GetScreenWidth()/2;
+    player.playerDest.y = GetScreenHeight()/2;
+    player.playerDest.width = 32;
+    player.playerDest.height = 32;
+    player.origin.x = player.playerDest.width/2;
+    player.origin.y = player.playerDest.height/2;
+    player.speed.x = 4;
+    player.speed.y = 4;
     player.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/walk.png");
+
+    // Initialize player's shadow
+    shadow.playerSrc.x =  0;
+    shadow.playerSrc.y = 0;
+    shadow.playerSrc.width = 12;
+    shadow.playerSrc.height = 7;
+    shadow.playerDest.x = player.playerDest.x;
+    shadow.playerDest.y = player.playerDest.y + 14;
+    shadow.playerDest.width = 24;
+    shadow.playerDest.height = 14;
+    shadow.origin.x = shadow.playerDest.width/2;
+    shadow.origin.y = shadow.playerDest.height/2;
+    shadow.speed.x = 0;
+    shadow.speed.y = 0;
+    shadow.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/Shadow.png");
 
     // Initialize player's life
     playerLife[0].life = LoadTexture("Assets/NinjaAdventure/HUD/Heart.png");
@@ -416,7 +442,6 @@ void InitGame(void)
 //------------------------------------------------------------------------------------
 void UpdateGame(void)
 {
-
     // Time counter (60|1sec)
     frameCount++;
 
@@ -729,6 +754,10 @@ void UpdateGame(void)
             if (player.playerDest.y <= 0) player.playerDest.y = 0;
             if (player.playerDest.y + player.playerDest.height >= GetScreenHeight()) player.playerDest.y = GetScreenHeight() - player.playerDest.height;
 
+            // Shadow behaviour
+            shadow.playerDest.x = player.playerDest.x;
+            shadow.playerDest.y = player.playerDest.y + 14;
+
             // Shoot initialization
             if (IsKeyDown(KEY_SPACE))
             {
@@ -988,10 +1017,36 @@ void DrawGame(void)
 
     if (!gameOver)
         {
+
+            /*
+            typedef struct Tile{
+                int *tileMap;
+                char **srcMap;
+                Rectangle tileSrc;
+                Rectangle tileDest;
+                int mapW;
+                int mapH;
+            } Tile;
+
+            // Draw background
+            for (int i = 0; i < sizeof(tile.tileMap)/sizeof(int); i++)
+            {
+                if (tile.tileMap[i] != 0)
+                {
+                    tile.tileDest.x = tile.tileDest.width * (float)(i % mapW);
+                    tile.tileDest.y = tile.tileDest.height * (float)(i / mapW);
+
+                    tile.tileSrc.x = tile.tileSrc.width * (float)((tile.tileMap[i]-1) %)
+                }
+            }
+            */
+
+
             // Rectangle for tracking character position (testes!)
             // DrawRectangle(player.playerDest.x, player.playerDest.y, player.playerDest.width, player.playerDest.height, BLUE);
+            DrawTexturePro(shadow.playerSprite, shadow.playerSrc, shadow.playerDest, shadow.origin, 0, WHITE);
             DrawTexturePro(player.playerSprite, player.playerSrc, player.playerDest, player.origin, 0, WHITE);
-
+            
             // Draw player's life
             DrawTexturePro(playerLife[0].life, playerLife[0].lifeSrc, playerLife[0].lifeDest, playerLife[0].origin, 0, WHITE);
             DrawTexturePro(playerLife[1].life, playerLife[1].lifeSrc, playerLife[1].lifeDest, playerLife[1].origin, 0, WHITE);
@@ -1069,6 +1124,7 @@ void UnloadGame(void)
 {
     // TODO: Unload all dynamic loaded data (textures, sounds, models...)
     UnloadTexture(player.playerSprite);
+    UnloadTexture(shadow.playerSprite);
     UnloadTexture(playerLife[0].life);
     UnloadTexture(playerLife[1].life);
     UnloadTexture(playerLife[2].life);
