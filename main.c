@@ -40,6 +40,7 @@ typedef struct Life{
 typedef struct Enemy{
     bool active;
     bool free; // for walking freely
+    bool collided;
     int enemyFrame;
     int enemyDir;
     Rectangle enemySrc;
@@ -397,6 +398,7 @@ void InitGame(void)
         enemy[i].origin.y = enemy[i].enemyDest.height/2;
         enemy[i].active = true;
         enemy[i].free = false;
+        enemy[i].collided = false;
     }
 
     // Initialize left side enemies
@@ -416,6 +418,7 @@ void InitGame(void)
         enemy[i].origin.y = enemy[i].enemyDest.height/2;
         enemy[i].active = true;
         enemy[i].free = false;
+        enemy[i].collided = false;
     }
 
     // Initialize bottom side enemies
@@ -435,6 +438,7 @@ void InitGame(void)
         enemy[i].origin.y = enemy[i].enemyDest.height/2;
         enemy[i].active = true;
         enemy[i].free = false;
+        enemy[i].collided = false;
     }
 
     // Initialize top side enemies
@@ -454,6 +458,7 @@ void InitGame(void)
         enemy[i].origin.y = enemy[i].enemyDest.height/2;
         enemy[i].active = true;
         enemy[i].free = false;
+        enemy[i].collided = false;
     }
 
     // Initialize shoots
@@ -512,8 +517,8 @@ void UpdateGame(void)
             {
                 case FIRST:
                 {
-                    // Initialize enemy sprite
                     if (load) {
+                        // Initialize enemy sprite
                         for (int i = 0; i < activeEnemies; i+=2)
                             enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Cyclope/SpriteSheet.png");
 
@@ -552,8 +557,8 @@ void UpdateGame(void)
 
                 case SECOND:
                 {
-                    // Initialize enemy sprite
                     if (load) {
+                        // Initialize enemy sprite
                         for (int i = 0; i < activeEnemies; i+=2)
                             enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Cyclope/SpriteSheet.png");
 
@@ -585,14 +590,15 @@ void UpdateGame(void)
                         activeEnemies = THIRD_WAVE;
                         wave = THIRD;
                         smooth = false;
+                        load = true;
                         alpha = 0.0f;
                     }
                 } break;
 
                 case THIRD:
                 {
-                    // Initialize enemy sprite
                     if (load) {
+                        // Initialize enemy sprite
                         for (int i = 0; i < activeEnemies; i+=2)
                             enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Cyclope/SpriteSheet.png");
 
@@ -947,10 +953,23 @@ void UpdateGame(void)
 
             // General enemy behaviour (follow player)
             for (int i = 0; i < activeEnemies; i++)
-            {
+            {   
+                int indice;
+                enemy[i].collided = false;
+
+                for (int j = 0; j < activeEnemies; j++)
+                {
+                    if (i != j){
+                        if (CheckCollisionRecs(enemy[i].enemyDest, enemy[j].enemyDest)){
+                            enemy[i].collided = true; 
+                            indice = j;
+                        }
+                    }
+                }
+
                 bool yMenor = true;
                 bool yMaior = true;
-                if (enemy[i].active && enemy[i].free)
+                if (enemy[i].active && enemy[i].free && !enemy[i].collided)
                 {   
                     if (player.playerDest.x < enemy[i].enemyDest.x){
                         enemy[i].enemyDest.x -= enemy[i].speed.x;
@@ -985,10 +1004,31 @@ void UpdateGame(void)
                             enemy[i].enemyDir = 3; // Right
                     }
                 }
+                else if (enemy[i].active && enemy[i].free && enemy[i].collided)
+                {
+                    if (enemy[i].enemyDest.x < enemy[indice].enemyDest.x){
+                        enemy[i].enemyDest.x -= enemy[i].speed.x;
+                    }
+
+                    if (enemy[i].enemyDest.x > enemy[indice].enemyDest.x){
+                        enemy[i].enemyDest.x += enemy[i].speed.x;
+                    }
+
+                    if (enemy[i].enemyDest.y < enemy[indice].enemyDest.y){
+                        enemy[i].enemyDest.y -= enemy[i].speed.y;
+                    }
+
+                    if (enemy[i].enemyDest.y > enemy[indice].enemyDest.y){
+                        enemy[i].enemyDest.y += enemy[i].speed.y;
+                    }
+                }  
             }
 
+
+
             // Enemy movement animation
-            for (int i = 0; i < activeEnemies; i++){
+            for (int i = 0; i < activeEnemies; i++)
+            {
                 enemy[i].enemySrc.y = 0;
 
                 if (enemy[i].active){
@@ -1139,8 +1179,31 @@ void UpdateGame(void)
                             if (CheckCollisionRecs(shoot[i].rec, enemy[j].enemyDest))
                             {
                                 shoot[i].active = false;
-                                enemy[j].enemyDest.x = GetRandomValue(GetScreenWidth(), GetScreenWidth() + 1000);
-                                enemy[j].enemyDest.y = GetRandomValue(0, GetScreenHeight() - enemy[j].enemyDest.height);
+
+                                if(j % 4 == 0)
+                                {
+                                    enemy[j].enemyDest.x = GetRandomValue(GetScreenWidth(), GetScreenWidth() + 1000);
+                                    enemy[j].enemyDest.y = GetRandomValue(0, GetScreenHeight() - enemy[i].enemyDest.height);
+                                }
+
+                                else if (j % 4 == 1)
+                                {
+                                    enemy[j].enemyDest.x = GetRandomValue(-1000, 0);
+                                    enemy[j].enemyDest.y = GetRandomValue(0, GetScreenHeight() - enemy[i].enemyDest.height);
+                                }
+
+                                else if (j % 4 == 2)
+                                {
+                                    enemy[j].enemyDest.x = GetRandomValue(0, GetScreenWidth() - enemy[i].enemyDest.width);
+                                    enemy[j].enemyDest.y = GetRandomValue(GetScreenHeight(), GetScreenHeight() + 1000);
+                                }
+
+                                else if (j % 4 == 3)
+                                {
+                                    enemy[j].enemyDest.x = GetRandomValue(0, GetScreenWidth() - enemy[i].enemyDest.width);
+                                    enemy[j].enemyDest.y = GetRandomValue(-1000, 0);
+                                }
+
                                 enemiesKill++;
                                 score += 100;
                                 //shootRate = 0;
