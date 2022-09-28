@@ -64,21 +64,12 @@ typedef struct SoundEffect{
     Sound sound;
 } SoundEffect;
 
-typedef struct Tile{
-    int *tileMap;
-    char **srcMap;
-    Rectangle tileSrc;
-    Rectangle tileDest;
-    int mapW;
-    int mapH;
-} Tile;
-
 //------------------------------------------------------------------------------------
 // Global Variables Declaration
 //------------------------------------------------------------------------------------
 
 // Not static const for fullscreen option
-int screenWidth = 1200;
+int screenWidth = 1280;
 int screenHeight = 720;
 
 static bool gameOver = false;
@@ -130,22 +121,22 @@ bool btnAction = false;
 bool isPressed = false;
 Vector2 mousePoint = { 0, 0 };
 
-// Current Screen variable
+// Current Screen variables
 GameScreen currentScreen = LOGO;
 Texture2D backgroundLogo, backgroundTitle;
 Rectangle bgSrc;
 Rectangle bgDest;
 Vector2 bgOrigin;
 
-// Tile mapping variables
-Tile tile;
+// Main background variables
+Texture2D backgroundMain;
 
 //------------------------------------------------------------------------------------
 // Module Functions Declaration (local)
 //------------------------------------------------------------------------------------
-void InitGame(void);         // Initialize game
-void UpdateGame(void);       
-void DrawGame(void);        
+void InitGame(void);         // Initialize game    
+void UpdateGame(void);
+void DrawGame(void);  
 void UpdateLogo(void);         
 void DrawLogo(void);         
 void UpdateTitle(void);    
@@ -164,6 +155,7 @@ int main(void)
 
     // Initialization (Note windowTitle is unused on Android)
     //---------------------------------------------------------
+
     InitWindow(screenWidth, screenHeight, "NINJA DEFENDERS");
     SetWindowIcon(windowIcon);
     InitAudioDevice();
@@ -242,10 +234,6 @@ int main(void)
     return 0;
 }
 
-//------------------------------------------------------------------------------------
-// Module Functions Definitions (local)
-//------------------------------------------------------------------------------------
-
 // Initialize game variables
 void InitGame(void)
 {
@@ -257,12 +245,13 @@ void InitGame(void)
     damageAnim = false;
 
     // Initialize background variables
+    backgroundMain = LoadTexture("Assets/NinjaAdventure/Backgrounds/backgroundMain.png");
     backgroundLogo = LoadTexture("Assets/NinjaAdventure/Backgrounds/background.png");
     backgroundTitle = LoadTexture("Assets/NinjaAdventure/Backgrounds/backgroud_titlescreen.png");
     bgSrc.x = 0;
     bgSrc.y = 0;
-    bgSrc.width = 890;
-    bgSrc.height = 470;
+    bgSrc.width = 1280;
+    bgSrc.height = 720;
     bgDest.x = 0;
     bgDest.y = 0;
     bgDest.width = GetScreenWidth();
@@ -344,7 +333,7 @@ void InitGame(void)
     playerLife[0].lifeSrc.width = 16.2;
     playerLife[0].lifeSrc.height = 16.2;
     playerLife[0].lifeDest.x = 40;
-    playerLife[0].lifeDest.y = 0;
+    playerLife[0].lifeDest.y = GetScreenHeight() - 60;
     playerLife[0].lifeDest.width = 32;
     playerLife[0].lifeDest.height = 32;
     playerLife[0].origin.x = 0;
@@ -356,7 +345,7 @@ void InitGame(void)
     playerLife[1].lifeSrc.width = 16.2;
     playerLife[1].lifeSrc.height = 16.2;
     playerLife[1].lifeDest.x = 85;
-    playerLife[1].lifeDest.y = 0;
+    playerLife[1].lifeDest.y = GetScreenHeight() - 60;
     playerLife[1].lifeDest.width = 32;
     playerLife[1].lifeDest.height = 32;
     playerLife[1].origin.x = 0;
@@ -368,7 +357,7 @@ void InitGame(void)
     playerLife[2].lifeSrc.width = 16.2;
     playerLife[2].lifeSrc.height = 16.2;
     playerLife[2].lifeDest.x = 130;
-    playerLife[2].lifeDest.y = 0;
+    playerLife[2].lifeDest.y = GetScreenHeight() - 60;
     playerLife[2].lifeDest.width = 32;
     playerLife[2].lifeDest.height = 32;
     playerLife[1].origin.x = 0;
@@ -423,12 +412,12 @@ void InitGame(void)
         shoot[i].shootSrc.y = 0;
         shoot[i].shootSrc.width = 16;
         shoot[i].shootSrc.height = 16;
-        shoot[i].rec.x = player.playerDest.x + player.playerDest.width/2.5;
-        shoot[i].rec.y = player.playerDest.y + player.playerDest.height/2;
+        shoot[i].rec.x = player.playerDest.x;
+        shoot[i].rec.y = player.playerDest.y;
         shoot[i].rec.width = 16;
         shoot[i].rec.height = 16;
-        shoot[i].origin.x = 0;
-        shoot[i].origin.y = 0;
+        shoot[i].origin.x = shoot[i].rec.width/2;
+        shoot[i].origin.y = shoot[i].rec.height/2;
         shoot[i].speed.x = 7;
         shoot[i].speed.y = 7;
         shoot[i].bulletFrame = 0;
@@ -442,14 +431,20 @@ void InitGame(void)
 //------------------------------------------------------------------------------------
 void UpdateGame(void)
 {
+    // Adjusting visual elements on resizabled window 
+    if (IsWindowResized()){
+        // Adjust background size
+        bgDest.width = GetScreenWidth();
+        bgDest.height = GetScreenHeight();
+    
+        // !player's life
+        playerLife[0].lifeDest.y = GetScreenHeight() - 60;
+        playerLife[1].lifeDest.y = GetScreenHeight() - 60;
+        playerLife[2].lifeDest.y = GetScreenHeight() - 60;
+    }
+
     // Time counter (60|1sec)
     frameCount++;
-
-    // Adjusting visual elements on resizabled window 
-    // !player's life
-    playerLife[0].lifeDest.y = GetScreenHeight() - 60;
-    playerLife[1].lifeDest.y = GetScreenHeight() - 60;
-    playerLife[2].lifeDest.y = GetScreenHeight() - 60;
 
     if (!gameOver)
     {
@@ -715,7 +710,6 @@ void UpdateGame(void)
                 }
             }
 
-            
             // Bottom enemy behaviour
             for (int i = 2; i < activeEnemies; i += 3)
             {
@@ -749,10 +743,10 @@ void UpdateGame(void)
             }
 
             // Wall behaviour
-            if (player.playerDest.x <= 0) player.playerDest.x = 0;
-            if (player.playerDest.x + player.playerDest.width >= GetScreenWidth()) player.playerDest.x = GetScreenWidth() - player.playerDest.width;
-            if (player.playerDest.y <= 0) player.playerDest.y = 0;
-            if (player.playerDest.y + player.playerDest.height >= GetScreenHeight()) player.playerDest.y = GetScreenHeight() - player.playerDest.height;
+            if (player.playerDest.x - player.playerDest.width/2 <= 0) player.playerDest.x = player.playerDest.width/2;
+            if (player.playerDest.x + player.playerDest.width/2 >= GetScreenWidth()) player.playerDest.x = GetScreenWidth() - player.playerDest.width/2;
+            if (player.playerDest.y - player.playerDest.height/2 <= 0) player.playerDest.y = player.playerDest.height/2;
+            if (player.playerDest.y + player.playerDest.height/2 >= GetScreenHeight()) player.playerDest.y = GetScreenHeight() - player.playerDest.height/2;
 
             // Shadow behaviour
             shadow.playerDest.x = player.playerDest.x;
@@ -767,8 +761,8 @@ void UpdateGame(void)
                 {
                     if (!shoot[i].active && shootRate%20 == 0)
                     {
-                        shoot[i].rec.x = player.playerDest.x + player.playerDest.width/2.5;
-                        shoot[i].rec.y = player.playerDest.y + player.playerDest.height/2;
+                        shoot[i].rec.x = player.playerDest.x;
+                        shoot[i].rec.y = player.playerDest.y + 10;
                         shoot[i].active = true;
 
                         // Bullet Movement
@@ -938,6 +932,8 @@ void UpdateLogo(void){
 
     bgDest.width = GetScreenWidth();
     bgDest.height = GetScreenHeight();
+    bgSrc.width = 890;
+    bgSrc.height = 470;
 
     // Background music for logo screen
     UpdateMusicStream(backgroundMenu.song);
@@ -960,6 +956,8 @@ void UpdateTitle(void){
 
     bgDest.width = GetScreenWidth();
     bgDest.height = GetScreenHeight();
+    bgSrc.width = 890;
+    bgSrc.height = 470;
 
     // Keeps the music playing
     UpdateMusicStream(backgroundMenu.song);
@@ -1017,30 +1015,7 @@ void DrawGame(void)
 
     if (!gameOver)
         {
-
-            /*
-            typedef struct Tile{
-                int *tileMap;
-                char **srcMap;
-                Rectangle tileSrc;
-                Rectangle tileDest;
-                int mapW;
-                int mapH;
-            } Tile;
-
-            // Draw background
-            for (int i = 0; i < sizeof(tile.tileMap)/sizeof(int); i++)
-            {
-                if (tile.tileMap[i] != 0)
-                {
-                    tile.tileDest.x = tile.tileDest.width * (float)(i % mapW);
-                    tile.tileDest.y = tile.tileDest.height * (float)(i / mapW);
-
-                    tile.tileSrc.x = tile.tileSrc.width * (float)((tile.tileMap[i]-1) %)
-                }
-            }
-            */
-
+            DrawTexturePro(backgroundMain, bgSrc, bgDest, bgOrigin, 0, WHITE);
 
             // Rectangle for tracking character position (testes!)
             // DrawRectangle(player.playerDest.x, player.playerDest.y, player.playerDest.width, player.playerDest.height, BLUE);
@@ -1130,6 +1105,7 @@ void UnloadGame(void)
     UnloadTexture(playerLife[2].life);
     UnloadTexture(backgroundLogo);
     UnloadTexture(backgroundTitle);
+    UnloadTexture(backgroundMain);
     UnloadTexture(button);
     UnloadMusicStream(backgroundMusic.song);
     UnloadMusicStream(backgroundMenu.song);
