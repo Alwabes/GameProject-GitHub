@@ -11,8 +11,8 @@
 //----------------------------------------------------------------------------------
 #define NUM_SHOOTS 50
 #define NUM_MAX_ENEMIES 50
-#define FIRST_WAVE 10
-#define SECOND_WAVE 20
+#define FIRST_WAVE 20
+#define SECOND_WAVE 30
 #define THIRD_WAVE 50
 
 
@@ -40,9 +40,13 @@ typedef struct Life{
 typedef struct Enemy{
     bool active;
     bool free; // for walking freely
-    Rectangle rec;
+    int enemyFrame;
+    int enemyDir;
+    Rectangle enemySrc;
+    Rectangle enemyDest;
     Vector2 speed;
-    Color color;
+    Vector2 origin;
+    Texture2D enemySprite;
 } Enemy;
 
 typedef struct Shoot{
@@ -91,9 +95,14 @@ static float alpha = 0.0f;
 static int activeEnemies = 0;
 static int enemiesKill = 0;
 static bool smooth = false;
+static bool load = true;
 
 // Player's moving animation
-bool moving; 
+bool moving;
+bool canWalkR = true;  // for collision (not fixed yet)
+bool canWalkL = true; 
+bool canWalkD = true; 
+bool canWalkU = true; 
 bool alive = true;
 int direction, dirImg, playerFrame, frameCount;
 
@@ -131,7 +140,6 @@ Vector2 bgOrigin;
 
 // Main background variables
 Texture2D backgroundMain;
-
 
 //------------------------------------------------------------------------------------
 // Module Functions Declaration (local)
@@ -266,7 +274,7 @@ void InitGame(void)
     alpha = 0;
     
     // Initialize background variables
-    backgroundMain = LoadTexture("Assets/NinjaAdventure/Backgrounds/map.png");
+    backgroundMain = LoadTexture("Assets/NinjaAdventure/Backgrounds/backgroundMain.png");
     backgroundLogo = LoadTexture("Assets/NinjaAdventure/Backgrounds/background.png");
     backgroundTitle = LoadTexture("Assets/NinjaAdventure/Backgrounds/backgroud_titlescreen.png");
     bgSrc.x = 0;
@@ -375,56 +383,76 @@ void InitGame(void)
     // Initialize right side enemies
     for (int i = 0; i < NUM_MAX_ENEMIES; i += 4)
     {
-        enemy[i].rec.width = 10;
-        enemy[i].rec.height = 10;
-        enemy[i].rec.x = GetRandomValue(GetScreenWidth(), GetScreenWidth() + 1000);
-        enemy[i].rec.y = GetRandomValue(0, GetScreenHeight() - enemy[i].rec.height);
-        enemy[i].speed.x = 1.3;
-        enemy[i].speed.y = 1.3;
+        enemy[i].enemySrc.width = 16;
+        enemy[i].enemySrc.height = 16;
+        enemy[i].enemySrc.x = 0;
+        enemy[i].enemySrc.y = 0;
+        enemy[i].enemyDest.x = GetRandomValue(GetScreenWidth(), GetScreenWidth() + 1000);
+        enemy[i].enemyDest.y = GetRandomValue(0, GetScreenHeight() - enemy[i].enemyDest.height);
+        enemy[i].enemyDest.width = 16;
+        enemy[i].enemyDest.height = 16;
+        enemy[i].speed.x = 1;
+        enemy[i].speed.y = 1;
+        enemy[i].origin.x = enemy[i].enemyDest.width/2;
+        enemy[i].origin.y = enemy[i].enemyDest.height/2;
         enemy[i].active = true;
-        enemy[i].color = RED;
         enemy[i].free = false;
     }
 
     // Initialize left side enemies
     for (int i = 1; i < NUM_MAX_ENEMIES; i += 4)
     {
-        enemy[i].rec.width = 10;
-        enemy[i].rec.height = 10;
-        enemy[i].rec.x = GetRandomValue(-1000, 0);
-        enemy[i].rec.y = GetRandomValue(0, GetScreenHeight() - enemy[i].rec.height);
-        enemy[i].speed.x = 1.3;
-        enemy[i].speed.y = 1.3;
+        enemy[i].enemySrc.width = 16;
+        enemy[i].enemySrc.height = 16;
+        enemy[i].enemySrc.x = 0;
+        enemy[i].enemySrc.y = 0;
+        enemy[i].enemyDest.x = GetRandomValue(-1000, 0);
+        enemy[i].enemyDest.y = GetRandomValue(0, GetScreenHeight() - enemy[i].enemyDest.height);
+        enemy[i].enemyDest.width = 16;
+        enemy[i].enemyDest.height = 16;
+        enemy[i].speed.x = 1;
+        enemy[i].speed.y = 1;
+        enemy[i].origin.x = enemy[i].enemyDest.width/2;
+        enemy[i].origin.y = enemy[i].enemyDest.height/2;
         enemy[i].active = true;
-        enemy[i].color = RED;
         enemy[i].free = false;
     }
 
     // Initialize bottom side enemies
     for (int i = 2; i < NUM_MAX_ENEMIES; i += 4)
     {
-        enemy[i].rec.width = 10;
-        enemy[i].rec.height = 10;
-        enemy[i].rec.x = GetRandomValue(0, GetScreenWidth() - enemy[i].rec.width);
-        enemy[i].rec.y = GetRandomValue(GetScreenHeight(), GetScreenHeight() + 1000);
-        enemy[i].speed.x = 1.3;
-        enemy[i].speed.y = 1.3;
+        enemy[i].enemySrc.width = 16;
+        enemy[i].enemySrc.height = 16;
+        enemy[i].enemySrc.x = 0;
+        enemy[i].enemySrc.y = 0;
+        enemy[i].enemyDest.x = GetRandomValue(0, GetScreenWidth() - enemy[i].enemyDest.width);
+        enemy[i].enemyDest.y = GetRandomValue(GetScreenHeight(), GetScreenHeight() + 1000);
+        enemy[i].enemyDest.width = 16;
+        enemy[i].enemyDest.height = 16;
+        enemy[i].speed.x = 1;
+        enemy[i].speed.y = 1;
+        enemy[i].origin.x = enemy[i].enemyDest.width/2;
+        enemy[i].origin.y = enemy[i].enemyDest.height/2;
         enemy[i].active = true;
-        enemy[i].color = RED;
         enemy[i].free = false;
     }
 
     // Initialize top side enemies
     for (int i = 3; i < NUM_MAX_ENEMIES; i += 4)
     {
-        enemy[i].rec.width = 10;
-        enemy[i].rec.height = 10;
-        enemy[i].rec.x = GetRandomValue(0, GetScreenWidth() - enemy[i].rec.width);
-        enemy[i].rec.y = GetRandomValue(-1000, 0);
-        enemy[i].speed.x = 1.5;
-        enemy[i].speed.y = 1.5;
+        enemy[i].enemySrc.width = 16;
+        enemy[i].enemySrc.height = 16;
+        enemy[i].enemySrc.x = 0;
+        enemy[i].enemySrc.y = 0;
+        enemy[i].enemyDest.x = GetRandomValue(0, GetScreenWidth() - enemy[i].enemyDest.width);
+        enemy[i].enemyDest.y = GetRandomValue(-1000, 0);
+        enemy[i].enemyDest.width = 16;
+        enemy[i].enemyDest.height = 16;
+        enemy[i].speed.x = 1;
+        enemy[i].speed.y = 1;
+        enemy[i].origin.x = enemy[i].enemyDest.width/2;
+        enemy[i].origin.y = enemy[i].enemyDest.height/2;
         enemy[i].active = true;
-        enemy[i].color = RED;
         enemy[i].free = false;
     }
 
@@ -484,6 +512,18 @@ void UpdateGame(void)
             {
                 case FIRST:
                 {
+                    // Initialize enemy sprite
+                    if (load) {
+                        for (int i = 0; i < activeEnemies; i+=2)
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Cyclope/SpriteSheet.png");
+
+                        for (int i = 1; i < activeEnemies; i+=2)
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Flam/SpriteSheet.png");
+                        
+
+                        load = false;
+                    }
+
                     if (!smooth)
                     {
                         alpha += 0.02f;
@@ -505,12 +545,25 @@ void UpdateGame(void)
                         activeEnemies = SECOND_WAVE;
                         wave = SECOND;
                         smooth = false;
+                        load = true;
                         alpha = 0.0f;
                     }
                 } break;
 
                 case SECOND:
                 {
+                    // Initialize enemy sprite
+                    if (load) {
+                        for (int i = 0; i < activeEnemies; i+=2)
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Cyclope/SpriteSheet.png");
+
+                        for (int i = 1; i < activeEnemies; i+=2)
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Flam/SpriteSheet.png");
+                        
+
+                        load = false;
+                    }
+
                     if (!smooth)
                     {
                         alpha += 0.02f;
@@ -538,6 +591,18 @@ void UpdateGame(void)
 
                 case THIRD:
                 {
+                    // Initialize enemy sprite
+                    if (load) {
+                        for (int i = 0; i < activeEnemies; i+=2)
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Cyclope/SpriteSheet.png");
+
+                        for (int i = 1; i < activeEnemies; i+=2)
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Flam/SpriteSheet.png");
+                        
+
+                        load = false;
+                    }
+
                     if (!smooth)
                     {
                         alpha += 0.02f;
@@ -560,8 +625,11 @@ void UpdateGame(void)
             if (alive){
                 if (IsKeyDown(KEY_UP) && IsKeyDown(KEY_LEFT))
                 {
-                    player.playerDest.x -= player.speed.x;
-                    player.playerDest.y -= player.speed.y;
+                    if (canWalkU && canWalkL){
+                        player.playerDest.x -= player.speed.x;
+                        player.playerDest.y -= player.speed.y;
+                    }
+
                     direction = 7;
                     dirImg = 1;
                     moving = true;
@@ -569,8 +637,10 @@ void UpdateGame(void)
 
                 else if (IsKeyDown(KEY_UP) && IsKeyDown(KEY_RIGHT))
                 {
-                    player.playerDest.x += player.speed.x;
-                    player.playerDest.y -= player.speed.y;
+                    if (canWalkU && canWalkR){
+                        player.playerDest.x += player.speed.x;
+                        player.playerDest.y -= player.speed.y;
+                    }
                     direction = 6;
                     dirImg = 1;
                     moving = true;
@@ -578,8 +648,10 @@ void UpdateGame(void)
 
                 else if (IsKeyDown(KEY_DOWN) && IsKeyDown(KEY_LEFT))
                 {
-                    player.playerDest.x -= player.speed.x;
-                    player.playerDest.y += player.speed.y;
+                    if (canWalkD && canWalkL){
+                        player.playerDest.x -= player.speed.x;
+                        player.playerDest.y += player.speed.y;
+                    }
                     direction = 5;
                     dirImg = 0;
                     moving = true;
@@ -587,41 +659,158 @@ void UpdateGame(void)
 
                 else if (IsKeyDown(KEY_DOWN) && IsKeyDown(KEY_RIGHT))
                 {
-                    player.playerDest.x += player.speed.x;
-                    player.playerDest.y += player.speed.y;
+                    if (canWalkD && canWalkR){
+                        player.playerDest.x += player.speed.x;
+                        player.playerDest.y += player.speed.y;
+                    }
                     direction = 4;
                     dirImg = 0;
                     moving = true;
                 }
 
-                else if (IsKeyDown(KEY_RIGHT)){
-                    player.playerDest.x += player.speed.x;
+                else if (IsKeyDown(KEY_RIGHT))
+                {
+                    if (canWalkR)
+                        player.playerDest.x += player.speed.x;
+
                     direction = 3;
                     dirImg = 3;
                     moving = true;
                 }
 
-                else if (IsKeyDown(KEY_LEFT)){
-                    player.playerDest.x -= player.speed.x;
+                else if (IsKeyDown(KEY_LEFT))
+                {
+                    if (canWalkL)
+                        player.playerDest.x -= player.speed.x;
+
                     direction = 2;
                     dirImg = 2;
                     moving = true;
                 }
 
-                else if (IsKeyDown(KEY_UP)){
-                    player.playerDest.y -= player.speed.y;
+                else if (IsKeyDown(KEY_UP))
+                {
+                    if (canWalkU)
+                        player.playerDest.y -= player.speed.y;
+
                     direction = 1;
                     dirImg = 1;
                     moving = true;
                 }
 
-                else if (IsKeyDown(KEY_DOWN)){
-                    player.playerDest.y += player.speed.y;
+                else if (IsKeyDown(KEY_DOWN))
+                {
+                    if (canWalkD)
+                        player.playerDest.y += player.speed.y;
+
                     direction = 0;
                     dirImg = 0;
                     moving = true;
                 }
             }
+
+            /*
+            Vector2 p;
+            Vector2 q;
+
+            switch (direction)
+            {
+                case 0:
+                    p.x = player.playerDest.x;
+                    p.y = player.playerDest.y + player.playerDest.height/2 + 10;
+                    break;
+
+                case 1:
+                    p.x = player.playerDest.x;
+                    p.y = player.playerDest.y - player.playerDest.height/2 - 10;
+                    break;
+
+                case 2:
+                    p.x = player.playerDest.x - player.playerDest.width/2 - 10;
+                    p.y = player.playerDest.y;
+                    break;
+
+                case 3:
+                    p.x = player.playerDest.x + player.playerDest.width/2 + 10;
+                    p.y = player.playerDest.y;
+                    break;  
+
+                case 4:
+                    p.x = player.playerDest.x + player.playerDest.width/2 + 10;
+                    p.y = player.playerDest.y + player.playerDest.height/2 + 10;
+                    q.x = player.playerDest.x;
+                    q.y = player.playerDest.y + player.playerDest.height/2 + 10;
+                    break;
+
+                case 5:
+                    p.x = player.playerDest.x - player.playerDest.width/2 - 10;
+                    p.y = player.playerDest.y + player.playerDest.height/2 + 10;
+                    q.x = player.playerDest.x;
+                    q.y = player.playerDest.y + player.playerDest.height/2 + 10;
+                    break;
+
+                case 6:
+                    p.x = player.playerDest.x + player.playerDest.width/2 + 10;
+                    p.y = player.playerDest.y - player.playerDest.height/2 - 10;
+                    q.x = player.playerDest.x;
+                    q.y = player.playerDest.y - player.playerDest.height/2 - 10;
+                    break;
+
+                case 7:
+                    p.x = player.playerDest.x - player.playerDest.width/2 - 10;
+                    p.y = player.playerDest.y - player.playerDest.height/2 - 10;
+                    q.x = player.playerDest.x;
+                    q.y = player.playerDest.y - player.playerDest.height/2 - 10;
+                    break;
+
+                default: break;
+            }
+            
+            // Map collision behaviour
+            if (CheckCollisionPointRec(p, statue) || CheckCollisionPointRec(q, statue))
+            {
+                switch (direction)
+                {
+                    case 0: 
+                    case 4:
+                    case 5: canWalkD = false;
+                            canWalkU = true;
+                            canWalkL = true;
+                            canWalkR = true;
+                            break;
+                    
+                    case 1:
+                    case 6:
+                    case 7: canWalkU = false;
+                            canWalkD = true;
+                            canWalkL = true;
+                            canWalkR = true;
+                            break;
+
+                    case 2: canWalkL = false;
+                            canWalkD = true;
+                            canWalkU = true;
+                            canWalkR = true;
+                            break;
+
+                    case 3: canWalkR = false;
+                            canWalkD = true;
+                            canWalkU = true;
+                            canWalkL = true;
+                            break;
+
+                    default: break;
+                }
+            }
+            else
+            {
+                canWalkD = true;
+                canWalkU = true;
+                canWalkL = true;
+                canWalkR = true;
+            }
+            */
+        
             
             // In case the player is moving diagonaly and stop, shoot won't bug
             if (!moving){
@@ -652,7 +841,7 @@ void UpdateGame(void)
             for (int i = 0; i < activeEnemies; i++)
             {
                 if (alive) {
-                    if (CheckCollisionRecs(player.playerDest, enemy[i].rec) && colision){
+                    if (CheckCollisionRecs(player.playerDest, enemy[i].enemyDest) && colision){
                         playerLife[lifeCount-1].lifeSrc.x = (playerLife[lifeCount-1].lifeSrc.width * 4) - 0.8;
                         PlaySound(damageTaken.sound);
                         lifeCount--;
@@ -712,9 +901,9 @@ void UpdateGame(void)
             {
                 if (enemy[i].active)
                 {
-                    if (enemy[i].rec.x > GetScreenWidth() - 25)
-                        enemy[i].rec.x -= enemy[i].speed.x;
-                    if (enemy[i].rec.x < GetScreenWidth() - 25)
+                    if (enemy[i].enemyDest.x > GetScreenWidth() - 25)
+                        enemy[i].enemyDest.x -= enemy[i].speed.x;
+                    if (enemy[i].enemyDest.x <= GetScreenWidth() - 25)
                         enemy[i].free = true;
                 }
             }
@@ -724,10 +913,10 @@ void UpdateGame(void)
             {
                 if (enemy[i].active)
                 {
-                    if (enemy[i].rec.x < 25)
-                        enemy[i].rec.x += enemy[i].speed.x;
+                    if (enemy[i].enemyDest.x < 25)
+                        enemy[i].enemyDest.x += enemy[i].speed.x;
 
-                    if (enemy[i].rec.x > 25)
+                    if (enemy[i].enemyDest.x >= 25)
                         enemy[i].free = true;
                 }
             }
@@ -737,9 +926,9 @@ void UpdateGame(void)
             {
                 if (enemy[i].active)
                 {
-                    if (enemy[i].rec.y > GetScreenHeight() - 25)
-                        enemy[i].rec.x -= enemy[i].speed.x;
-                    if (enemy[i].rec.x < GetScreenHeight() - 25)
+                    if (enemy[i].enemyDest.y > GetScreenHeight() - 25)
+                        enemy[i].enemyDest.y -= enemy[i].speed.y;
+                    if (enemy[i].enemyDest.y <= GetScreenHeight() - 25)
                         enemy[i].free = true;
                 }
             }
@@ -749,31 +938,71 @@ void UpdateGame(void)
             {
                 if (enemy[i].active)
                 {
-                    if (enemy[i].rec.y < 25)
-                        enemy[i].rec.x += enemy[i].speed.x;
-                    if (enemy[i].rec.x > 25)
+                    if (enemy[i].enemyDest.y < 25)
+                        enemy[i].enemyDest.y += enemy[i].speed.y;
+                    if (enemy[i].enemyDest.y >= 25)
                         enemy[i].free = true;
                 }
             }
 
             // General enemy behaviour (follow player)
-            for (int i = 0; i < activeEnemies; i ++)
+            for (int i = 0; i < activeEnemies; i++)
             {
+                bool yMenor = true;
+                bool yMaior = true;
                 if (enemy[i].active && enemy[i].free)
                 {   
-                    if (player.playerDest.x < enemy[i].rec.x)
-                        enemy[i].rec.x -= enemy[i].speed.x;
+                    if (player.playerDest.x < enemy[i].enemyDest.x){
+                        enemy[i].enemyDest.x -= enemy[i].speed.x;
+                    }
 
-                    if (player.playerDest.x > enemy[i].rec.x)
-                        enemy[i].rec.x += enemy[i].speed.x;
+                    if (player.playerDest.x > enemy[i].enemyDest.x){
+                        enemy[i].enemyDest.x += enemy[i].speed.x;
+                    }
 
-                    if (player.playerDest.y < enemy[i].rec.y)
-                        enemy[i].rec.y -= enemy[i].speed.y;
+                    if (player.playerDest.y < enemy[i].enemyDest.y){
+                        enemy[i].enemyDest.y -= enemy[i].speed.y;
+                        enemy[i].enemyDir = 1; // Top
+                    }
+                    else{
+                        yMenor = false;
+                    }
 
-                    if (player.playerDest.y > enemy[i].rec.y)
-                        enemy[i].rec.y += enemy[i].speed.y;
+                    if (player.playerDest.y > enemy[i].enemyDest.y){
+                        enemy[i].enemyDest.y += enemy[i].speed.y;
+                        enemy[i].enemyDir = 0; // Bottom
+                    }
+                    else{
+                        yMaior = false;
+                    }
 
+                    // For horizonatal animation
+                    if (!yMenor && !yMaior){
+                        if (player.playerDest.x < enemy[i].enemyDest.x)
+                            enemy[i].enemyDir = 2; // Left
+
+                        if (player.playerDest.x > enemy[i].enemyDest.x)
+                            enemy[i].enemyDir = 3; // Right
+                    }
                 }
+            }
+
+            // Enemy movement animation
+            for (int i = 0; i < activeEnemies; i++){
+                enemy[i].enemySrc.y = 0;
+
+                if (enemy[i].active){
+                    if (frameCount % 10 == 1)
+                        enemy[i].enemyFrame++;
+
+                    enemy[i].enemySrc.y = enemy[i].enemySrc.height * enemy[i].enemyFrame;
+                }
+
+                // Reset the animation
+                if (enemy[i].enemyFrame > 3)
+                    enemy[i].enemyFrame = 0;
+
+                enemy[i].enemySrc.x = enemy[i].enemySrc.width * enemy[i].enemyDir;
             }
 
             // Wall behaviour
@@ -781,7 +1010,7 @@ void UpdateGame(void)
             if (player.playerDest.x + player.playerDest.width/2 >= GetScreenWidth()) player.playerDest.x = GetScreenWidth() - player.playerDest.width/2;
             if (player.playerDest.y - player.playerDest.height/2 <= 0) player.playerDest.y = player.playerDest.height/2;
             if (player.playerDest.y + player.playerDest.height/2 >= GetScreenHeight()) player.playerDest.y = GetScreenHeight() - player.playerDest.height/2;
-
+                
             // Shadow behaviour
             shadow.playerDest.x = player.playerDest.x;
             shadow.playerDest.y = player.playerDest.y + 14;
@@ -907,11 +1136,11 @@ void UpdateGame(void)
                     {
                         if (enemy[j].active)
                         {
-                            if (CheckCollisionRecs(shoot[i].rec, enemy[j].rec))
+                            if (CheckCollisionRecs(shoot[i].rec, enemy[j].enemyDest))
                             {
                                 shoot[i].active = false;
-                                enemy[j].rec.x = GetRandomValue(GetScreenWidth(), GetScreenWidth() + 1000);
-                                enemy[j].rec.y = GetRandomValue(0, GetScreenHeight() - enemy[j].rec.height);
+                                enemy[j].enemyDest.x = GetRandomValue(GetScreenWidth(), GetScreenWidth() + 1000);
+                                enemy[j].enemyDest.y = GetRandomValue(0, GetScreenHeight() - enemy[j].enemyDest.height);
                                 enemiesKill++;
                                 score += 100;
                                 //shootRate = 0;
@@ -986,7 +1215,7 @@ void DrawGame(void)
 
         for (int i = 0; i < activeEnemies; i++)
         {
-            if (enemy[i].active) DrawRectangleRec(enemy[i].rec, enemy[i].color);
+            if (enemy[i].active) DrawTexturePro(enemy[i].enemySprite, enemy[i].enemySrc, enemy[i].enemyDest, enemy[i].origin, 0, WHITE);
         }
 
         for (int i = 0; i < NUM_SHOOTS; i++)
@@ -1149,10 +1378,14 @@ void UnloadGame(void)
     UnloadSound(damageTaken.sound);
     UnloadSound(fxButton);
 
-     for (int i = 0; i < NUM_SHOOTS; i++)
+    for (int i = 0; i < NUM_SHOOTS; i++)
     {
         // Unload all shurikens
         UnloadTexture(shoot[i].shootSprite);
+    }
+
+    for (int i = 0; i < NUM_MAX_ENEMIES; i++){
+        UnloadTexture(enemy[i].enemySprite);
     }
 }
 
