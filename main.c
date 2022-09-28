@@ -5,6 +5,7 @@
     #include <emscripten/emscripten.h>
 #endif
 
+
 //----------------------------------------------------------------------------------
 // Some Defines
 //----------------------------------------------------------------------------------
@@ -13,6 +14,7 @@
 #define FIRST_WAVE 10
 #define SECOND_WAVE 20
 #define THIRD_WAVE 50
+
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -64,18 +66,17 @@ typedef struct SoundEffect{
     Sound sound;
 } SoundEffect;
 
+
 //------------------------------------------------------------------------------------
 // Global Variables Declaration
 //------------------------------------------------------------------------------------
-
-// Not static const for fullscreen option
-int screenWidth = 1280;
-int screenHeight = 720;
+int screenWidth = 1600;
+int screenHeight = 900;
 
 static bool gameOver = false;
 static bool pause =  false;
-static int score = 0;
 static bool victory = false;
+static int score = 0;
 
 static Player player = { 0 };
 static Player shadow = { 0 };
@@ -97,7 +98,7 @@ bool alive = true;
 int direction, dirImg, playerFrame, frameCount;
 
 // Player's life count
-int count = 2;
+int lifeCount = 3;
 int invencibleCount;
 int damageAnimCount;
 bool colision = true;
@@ -113,12 +114,12 @@ SoundEffect gameOverSound = { 0 };
 SoundEffect damageTaken = { 0 };
 
 // Button variables
+bool btnAction = false; 
+bool isPressed = false;
 Sound fxButton; 
 Texture2D button;
 Rectangle sourceRec; 
 Rectangle btnBounds;
-bool btnAction = false; 
-bool isPressed = false;
 Vector2 mousePoint = { 0, 0 };
 
 // Current Screen variables
@@ -131,10 +132,11 @@ Vector2 bgOrigin;
 // Main background variables
 Texture2D backgroundMain;
 
+
 //------------------------------------------------------------------------------------
 // Module Functions Declaration (local)
 //------------------------------------------------------------------------------------
-void InitGame(void);         // Initialize game    
+void InitGame(void);            
 void UpdateGame(void);
 void DrawGame(void);  
 void UpdateLogo(void);         
@@ -143,18 +145,18 @@ void UpdateTitle(void);
 void DrawTitle(void);      
 void UnloadGame(void);       
 void UpdateDrawFrame(void);  
-void DrawScreen(void);       // Draw the current screen
+void DrawScreen(void);       
+
 
 //------------------------------------------------------------------------------------
 // Program main entry point
 //------------------------------------------------------------------------------------
 int main(void)
 {
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
+    // Config for resizable screen
+    // More screen size not implemented, for now just 1600:900
+    // SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
     Image windowIcon = LoadImage("Assets/NinjaAdventure/icon.png");
-
-    // Initialization (Note windowTitle is unused on Android)
-    //---------------------------------------------------------
 
     InitWindow(screenWidth, screenHeight, "NINJA DEFENDERS");
     SetWindowIcon(windowIcon);
@@ -163,11 +165,11 @@ int main(void)
 
     int framesCounter = 0; 
 
-#if defined(PLATFORM_WEB)
-    emscripten_set_main_loop(UpdateDrawFrame, 144, 1);
-#else
+    #if defined(PLATFORM_WEB)
+        emscripten_set_main_loop(UpdateDrawFrame, 144, 1);
+    #else
+
     SetTargetFPS(60);
-    //--------------------------------------------------------------------------------------
 
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
@@ -186,17 +188,19 @@ int main(void)
                     currentScreen = TITLE;
                 }
             } break;
+
             case TITLE:
             {
                 UpdateTitle();
 
-                // Press enter to change to GAMEPLAY screen
+                // If button play is pressed, change to GAMEPLAY screen
                 if (isPressed)
                 {
                     currentScreen = GAMEPLAY;
                     isPressed = false;
                 }
             } break;
+
             case GAMEPLAY:
             {
                 UpdateGame();
@@ -207,6 +211,7 @@ int main(void)
                     currentScreen = ENDING;
                 }
             } break;
+
             case ENDING:
             {
                 // TODO: Update ENDING screen variables here!
@@ -217,35 +222,51 @@ int main(void)
                     currentScreen = TITLE;
                 }
             } break;
+
             default: break;
         }
 
         //Draw the current screen
         DrawScreen();
     }
-#endif
+    #endif
+
     // De-Initialization
-    //--------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------
     UnloadGame();         // Unload loaded data (textures, sounds, models...)
-    CloseAudioDevice();
+    CloseAudioDevice();   // Close audio device  
     CloseWindow();        // Close window and OpenGL context
-    //--------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------
 
     return 0;
 }
 
+
+//------------------------------------------------------------------------------------
 // Initialize game variables
+//------------------------------------------------------------------------------------
 void InitGame(void)
 {
-
     // Secure that the game will start properly
     alive = true;
-    count = 2;
-    timerCount = 0;
     damageAnim = false;
+    lifeCount = 3;
+    timerCount = 0;
 
+    // Initialize game variables
+    shootRate = 0;
+    pause = false;
+    gameOver = false;
+    victory = false;
+    smooth = false;
+    wave = FIRST;
+    activeEnemies = FIRST_WAVE;
+    enemiesKill = 0;
+    score = 0;
+    alpha = 0;
+    
     // Initialize background variables
-    backgroundMain = LoadTexture("Assets/NinjaAdventure/Backgrounds/backgroundMain.png");
+    backgroundMain = LoadTexture("Assets/NinjaAdventure/Backgrounds/map.png");
     backgroundLogo = LoadTexture("Assets/NinjaAdventure/Backgrounds/background.png");
     backgroundTitle = LoadTexture("Assets/NinjaAdventure/Backgrounds/backgroud_titlescreen.png");
     bgSrc.x = 0;
@@ -284,18 +305,6 @@ void InitGame(void)
     btnBounds.width = 160;
     btnBounds.height = 52;
 
-    // Initialize game variables
-    shootRate = 0;
-    pause = false;
-    gameOver = false;
-    victory = false;
-    smooth = false;
-    wave = FIRST;
-    activeEnemies = FIRST_WAVE;
-    enemiesKill = 0;
-    score = 0;
-    alpha = 0;
-
     // Initialize player
     player.playerSrc.x =  0;
     player.playerSrc.y = 0;
@@ -309,7 +318,7 @@ void InitGame(void)
     player.origin.y = player.playerDest.height/2;
     player.speed.x = 4;
     player.speed.y = 4;
-    player.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/walk.png");
+    player.playerSprite = LoadTexture("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/walk.png");
 
     // Initialize player's shadow
     shadow.playerSrc.x =  0;
@@ -324,7 +333,7 @@ void InitGame(void)
     shadow.origin.y = shadow.playerDest.height/2;
     shadow.speed.x = 0;
     shadow.speed.y = 0;
-    shadow.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/Shadow.png");
+    shadow.playerSprite = LoadTexture("Assets/NinjaAdventure/Actor/Characters/Shadow.png");
 
     // Initialize player's life
     playerLife[0].life = LoadTexture("Assets/NinjaAdventure/HUD/Heart.png");
@@ -364,44 +373,58 @@ void InitGame(void)
     playerLife[1].origin.y = 0;
 
     // Initialize right side enemies
-    for (int i = 0; i < NUM_MAX_ENEMIES; i += 3)
+    for (int i = 0; i < NUM_MAX_ENEMIES; i += 4)
     {
         enemy[i].rec.width = 10;
         enemy[i].rec.height = 10;
         enemy[i].rec.x = GetRandomValue(GetScreenWidth(), GetScreenWidth() + 1000);
         enemy[i].rec.y = GetRandomValue(0, GetScreenHeight() - enemy[i].rec.height);
-        enemy[i].speed.x = 1.2;
-        enemy[i].speed.y = 1.2;
+        enemy[i].speed.x = 1.3;
+        enemy[i].speed.y = 1.3;
         enemy[i].active = true;
-        enemy[i].color = GRAY;
+        enemy[i].color = RED;
         enemy[i].free = false;
     }
 
     // Initialize left side enemies
-    for (int i = 1; i < NUM_MAX_ENEMIES; i += 3)
+    for (int i = 1; i < NUM_MAX_ENEMIES; i += 4)
     {
         enemy[i].rec.width = 10;
         enemy[i].rec.height = 10;
         enemy[i].rec.x = GetRandomValue(-1000, 0);
         enemy[i].rec.y = GetRandomValue(0, GetScreenHeight() - enemy[i].rec.height);
-        enemy[i].speed.x = 1.2;
-        enemy[i].speed.y = 1.2;
+        enemy[i].speed.x = 1.3;
+        enemy[i].speed.y = 1.3;
         enemy[i].active = true;
-        enemy[i].color = GRAY;
+        enemy[i].color = RED;
         enemy[i].free = false;
     }
 
     // Initialize bottom side enemies
-    for (int i = 2; i < NUM_MAX_ENEMIES; i += 3)
+    for (int i = 2; i < NUM_MAX_ENEMIES; i += 4)
     {
         enemy[i].rec.width = 10;
         enemy[i].rec.height = 10;
         enemy[i].rec.x = GetRandomValue(0, GetScreenWidth() - enemy[i].rec.width);
         enemy[i].rec.y = GetRandomValue(GetScreenHeight(), GetScreenHeight() + 1000);
-        enemy[i].speed.x = 1.2;
-        enemy[i].speed.y = 1.2;
+        enemy[i].speed.x = 1.3;
+        enemy[i].speed.y = 1.3;
         enemy[i].active = true;
-        enemy[i].color = GRAY;
+        enemy[i].color = RED;
+        enemy[i].free = false;
+    }
+
+    // Initialize top side enemies
+    for (int i = 3; i < NUM_MAX_ENEMIES; i += 4)
+    {
+        enemy[i].rec.width = 10;
+        enemy[i].rec.height = 10;
+        enemy[i].rec.x = GetRandomValue(0, GetScreenWidth() - enemy[i].rec.width);
+        enemy[i].rec.y = GetRandomValue(-1000, 0);
+        enemy[i].speed.x = 1.5;
+        enemy[i].speed.y = 1.5;
+        enemy[i].active = true;
+        enemy[i].color = RED;
         enemy[i].free = false;
     }
 
@@ -422,9 +445,10 @@ void InitGame(void)
         shoot[i].speed.y = 7;
         shoot[i].bulletFrame = 0;
         shoot[i].active = false;
-        shoot[i].shootSprite = LoadTexture ("Assets/NinjaAdventure/HUD/Shuriken_anim.png");
+        shoot[i].shootSprite = LoadTexture("Assets/NinjaAdventure/HUD/Shuriken_anim.png");
     }
 }
+
 
 //------------------------------------------------------------------------------------
 // Update game (one frame)
@@ -437,7 +461,7 @@ void UpdateGame(void)
         bgDest.width = GetScreenWidth();
         bgDest.height = GetScreenHeight();
     
-        // !player's life
+        // player's life
         playerLife[0].lifeDest.y = GetScreenHeight() - 60;
         playerLife[1].lifeDest.y = GetScreenHeight() - 60;
         playerLife[2].lifeDest.y = GetScreenHeight() - 60;
@@ -456,7 +480,6 @@ void UpdateGame(void)
 
         if (!pause)
         {
-
             switch (wave)
             {
                 case FIRST:
@@ -485,6 +508,7 @@ void UpdateGame(void)
                         alpha = 0.0f;
                     }
                 } break;
+
                 case SECOND:
                 {
                     if (!smooth)
@@ -511,6 +535,7 @@ void UpdateGame(void)
                         alpha = 0.0f;
                     }
                 } break;
+
                 case THIRD:
                 {
                     if (!smooth)
@@ -525,6 +550,7 @@ void UpdateGame(void)
                     if (enemiesKill == activeEnemies) victory = true;
 
                 } break;
+
                 default: break;
             }
 
@@ -532,7 +558,6 @@ void UpdateGame(void)
             moving = false;
 
             if (alive){
-
                 if (IsKeyDown(KEY_UP) && IsKeyDown(KEY_LEFT))
                 {
                     player.playerDest.x -= player.speed.x;
@@ -628,9 +653,9 @@ void UpdateGame(void)
             {
                 if (alive) {
                     if (CheckCollisionRecs(player.playerDest, enemy[i].rec) && colision){
-                        playerLife[count].lifeSrc.x = (playerLife[count].lifeSrc.width * 4) - 0.8;
+                        playerLife[lifeCount-1].lifeSrc.x = (playerLife[lifeCount-1].lifeSrc.width * 4) - 0.8;
                         PlaySound(damageTaken.sound);
-                        count--;
+                        lifeCount--;
                         colision = false;
                         damageAnim = true;
                         damageAnimCount = 0;
@@ -664,7 +689,7 @@ void UpdateGame(void)
                 }
 
                 // When player is dead
-                if (count == -1){
+                if (lifeCount == 0){
                     StopMusicStream(backgroundMusic.song);
 
                     player.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/Dead.png");
@@ -680,13 +705,10 @@ void UpdateGame(void)
                         gameOver = true;
                     }
                 }
-
             }
 
-            // Enemies will only follow after a certain time 
-
-            // Right enemy behaviour
-            for (int i = 0; i < activeEnemies; i += 3)
+            // Initial right enemy behaviour
+            for (int i = 0; i < activeEnemies; i += 4)
             {
                 if (enemy[i].active)
                 {
@@ -697,8 +719,8 @@ void UpdateGame(void)
                 }
             }
 
-            // Left enemy behaviour
-            for (int i = 1; i < activeEnemies; i += 3)
+            // Initial left enemy behaviour
+            for (int i = 1; i < activeEnemies; i += 4)
             {
                 if (enemy[i].active)
                 {
@@ -710,14 +732,26 @@ void UpdateGame(void)
                 }
             }
 
-            // Bottom enemy behaviour
-            for (int i = 2; i < activeEnemies; i += 3)
+            // Initial bottom enemy behaviour
+            for (int i = 2; i < activeEnemies; i += 4)
             {
                 if (enemy[i].active)
                 {
                     if (enemy[i].rec.y > GetScreenHeight() - 25)
                         enemy[i].rec.x -= enemy[i].speed.x;
                     if (enemy[i].rec.x < GetScreenHeight() - 25)
+                        enemy[i].free = true;
+                }
+            }
+
+            // Initial top enemy behavior
+            for (int i = 3; i < activeEnemies; i += 4)
+            {
+                if (enemy[i].active)
+                {
+                    if (enemy[i].rec.y < 25)
+                        enemy[i].rec.x += enemy[i].speed.x;
+                    if (enemy[i].rec.x > 25)
                         enemy[i].free = true;
                 }
             }
@@ -816,7 +850,7 @@ void UpdateGame(void)
             {
                 if (shoot[i].active)
                 {
-
+                    // Shuriken throw animation
                     if (frameCount % 6 == 0){
                         shoot[i].shootSrc.x = shoot[i].bulletFrame * 20;
                         shoot[i].bulletFrame++;
@@ -878,33 +912,33 @@ void UpdateGame(void)
                                 shoot[i].active = false;
                                 enemy[j].rec.x = GetRandomValue(GetScreenWidth(), GetScreenWidth() + 1000);
                                 enemy[j].rec.y = GetRandomValue(0, GetScreenHeight() - enemy[j].rec.height);
-                                shootRate = 0;
                                 enemiesKill++;
                                 score += 100;
+                                //shootRate = 0;
                             }
 
-                            if (shoot[i].rec.x + shoot[i].rec.width >= GetScreenWidth())
+                            if (shoot[i].rec.x >= GetScreenWidth())
                             {
                                 shoot[i].active = false;
-                                shootRate = 0;
+                                //shootRate = 0;
                             }
 
                             if (shoot[i].rec.x < -shoot[i].rec.width)
                             {
                                 shoot[i].active = false;
-                                shootRate = 0;
+                                //shootRate = 0;
                             }
 
                             if (shoot[i].rec.y < -shoot[i].rec.height)
                             {
                                 shoot[i].active = false;
-                                shootRate = 0;
+                                //shootRate = 0;
                             }
 
-                            if (shoot[i].rec.y + shoot[i].rec.height >= GetScreenHeight())
+                            if (shoot[i].rec.y >= GetScreenHeight())
                             {
                                 shoot[i].active = false;
-                                shootRate = 0;
+                                //shootRate = 0;
                             }
                             
                         }
@@ -926,10 +960,57 @@ void UpdateGame(void)
 
 
 //------------------------------------------------------------------------------------
+// Draw game (one frame)
+//------------------------------------------------------------------------------------
+void DrawGame(void)
+{
+    ClearBackground(DARKGRAY);
+
+    if (!gameOver)
+    {
+        DrawTexturePro(backgroundMain, bgSrc, bgDest, bgOrigin, 0, WHITE);
+
+        // Rectangle for tracking character position (testes!)
+        // DrawRectangle(player.playerDest.x, player.playerDest.y, player.playerDest.width, player.playerDest.height, BLUE);
+        DrawTexturePro(shadow.playerSprite, shadow.playerSrc, shadow.playerDest, shadow.origin, 0, WHITE);
+        DrawTexturePro(player.playerSprite, player.playerSrc, player.playerDest, player.origin, 0, WHITE);
+            
+        // Draw player's life
+        DrawTexturePro(playerLife[0].life, playerLife[0].lifeSrc, playerLife[0].lifeDest, playerLife[0].origin, 0, WHITE);
+        DrawTexturePro(playerLife[1].life, playerLife[1].lifeSrc, playerLife[1].lifeDest, playerLife[1].origin, 0, WHITE);
+        DrawTexturePro(playerLife[2].life, playerLife[2].lifeSrc, playerLife[2].lifeDest, playerLife[2].origin, 0, WHITE);
+
+        if (wave == FIRST) DrawText("FIRST WAVE", GetScreenWidth()/2 - MeasureText("FIRST WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(BLACK, alpha));
+        else if (wave == SECOND) DrawText("SECOND WAVE",GetScreenWidth()/2 - MeasureText("SECOND WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(BLACK, alpha));
+        else if (wave == THIRD) DrawText("THIRD WAVE", GetScreenWidth()/2 - MeasureText("THIRD WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(BLACK, alpha));
+
+        for (int i = 0; i < activeEnemies; i++)
+        {
+            if (enemy[i].active) DrawRectangleRec(enemy[i].rec, enemy[i].color);
+        }
+
+        for (int i = 0; i < NUM_SHOOTS; i++)
+        {
+            // Draw Shuriken (character basic atk)
+            if (shoot[i].active) DrawTexturePro(shoot[i].shootSprite, shoot[i].shootSrc, shoot[i].rec, shoot[i].origin, 0, WHITE);
+        }
+
+        DrawText(TextFormat("%04i", score), 40, 40, 40, RAYWHITE);
+
+        if (victory) DrawText("YOU WIN", GetScreenWidth()/2 - MeasureText("YOU WIN", 40)/2, GetScreenHeight()/2 - 40, 40, BLACK);
+
+        if (pause) DrawText("GAME PAUSED", GetScreenWidth()/2 - MeasureText("GAME PAUSED", 40)/2, GetScreenHeight()/2 - 40, 40, GRAY);
+    }
+    else DrawText("PRESS [ENTER] TO PLAY AGAIN", GetScreenWidth()/2 - MeasureText("PRESS [ENTER] TO PLAY AGAIN", 20)/2, GetScreenHeight()/2 - 50, 20, GRAY);
+
+}
+
+
+//------------------------------------------------------------------------------------
 // Update Logo (one frame)
 //------------------------------------------------------------------------------------
-void UpdateLogo(void){
-
+void UpdateLogo(void)
+{
     bgDest.width = GetScreenWidth();
     bgDest.height = GetScreenHeight();
     bgSrc.width = 890;
@@ -938,8 +1019,8 @@ void UpdateLogo(void){
     // Background music for logo screen
     UpdateMusicStream(backgroundMenu.song);
     PlayMusicStream(backgroundMenu.song);
-
 }
+
 
 //------------------------------------------------------------------------------------
 // Draw Logo (one frame)
@@ -949,11 +1030,12 @@ void DrawLogo(void)
     DrawTexturePro(backgroundLogo, bgSrc, bgDest, bgOrigin, 0, WHITE);
 }
 
+
 //------------------------------------------------------------------------------------
 // Update Title (one frame)
 //------------------------------------------------------------------------------------
-void UpdateTitle(void){
-
+void UpdateTitle(void)
+{
     bgDest.width = GetScreenWidth();
     bgDest.height = GetScreenHeight();
     bgSrc.width = 890;
@@ -991,9 +1073,8 @@ void UpdateTitle(void){
         InitGame();
         gameOver = false;
     }
-
-    // Calculate button frame rectangle to draw depending on button state
 }
+
 
 //------------------------------------------------------------------------------------
 // Draw Title (one frame)
@@ -1006,51 +1087,6 @@ void DrawTitle(void)
     DrawTextureRec(button, sourceRec, (Vector2){ btnBounds.x, btnBounds.y }, WHITE); 
 }
 
-//------------------------------------------------------------------------------------
-// Draw game (one frame)
-//------------------------------------------------------------------------------------
-void DrawGame(void)
-{
-    ClearBackground(DARKGRAY);
-
-    if (!gameOver)
-        {
-            DrawTexturePro(backgroundMain, bgSrc, bgDest, bgOrigin, 0, WHITE);
-
-            // Rectangle for tracking character position (testes!)
-            // DrawRectangle(player.playerDest.x, player.playerDest.y, player.playerDest.width, player.playerDest.height, BLUE);
-            DrawTexturePro(shadow.playerSprite, shadow.playerSrc, shadow.playerDest, shadow.origin, 0, WHITE);
-            DrawTexturePro(player.playerSprite, player.playerSrc, player.playerDest, player.origin, 0, WHITE);
-            
-            // Draw player's life
-            DrawTexturePro(playerLife[0].life, playerLife[0].lifeSrc, playerLife[0].lifeDest, playerLife[0].origin, 0, WHITE);
-            DrawTexturePro(playerLife[1].life, playerLife[1].lifeSrc, playerLife[1].lifeDest, playerLife[1].origin, 0, WHITE);
-            DrawTexturePro(playerLife[2].life, playerLife[2].lifeSrc, playerLife[2].lifeDest, playerLife[2].origin, 0, WHITE);
-
-            if (wave == FIRST) DrawText("FIRST WAVE", GetScreenWidth()/2 - MeasureText("FIRST WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(BLACK, alpha));
-            else if (wave == SECOND) DrawText("SECOND WAVE",GetScreenWidth()/2 - MeasureText("SECOND WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(BLACK, alpha));
-            else if (wave == THIRD) DrawText("THIRD WAVE", GetScreenWidth()/2 - MeasureText("THIRD WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(BLACK, alpha));
-
-            for (int i = 0; i < activeEnemies; i++)
-            {
-                if (enemy[i].active) DrawRectangleRec(enemy[i].rec, enemy[i].color);
-            }
-
-            for (int i = 0; i < NUM_SHOOTS; i++)
-            {
-                // Draw Shuriken (character basic atk)
-                if (shoot[i].active) DrawTexturePro(shoot[i].shootSprite, shoot[i].shootSrc, shoot[i].rec, shoot[i].origin, 0, WHITE);
-            }
-
-            DrawText(TextFormat("%04i", score), 20, 20, 40, GRAY);
-
-            if (victory) DrawText("YOU WIN", GetScreenWidth()/2 - MeasureText("YOU WIN", 40)/2, GetScreenHeight()/2 - 40, 40, BLACK);
-
-            if (pause) DrawText("GAME PAUSED", GetScreenWidth()/2 - MeasureText("GAME PAUSED", 40)/2, GetScreenHeight()/2 - 40, 40, GRAY);
-        }
-    else DrawText("PRESS [ENTER] TO PLAY AGAIN", GetScreenWidth()/2 - MeasureText("PRESS [ENTER] TO PLAY AGAIN", 20)/2, GetScreenHeight()/2 - 50, 20, GRAY);
-
-}
 
 //------------------------------------------------------------------------------------
 // Drawn Different Screens [general]
@@ -1089,8 +1125,8 @@ void DrawScreen()
         }
 
     EndDrawing();
-    //----------------------------------------------------------------------------------
 }
+
 
 //------------------------------------------------------------------------------------
 // Unload game variables
