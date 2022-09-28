@@ -122,6 +122,7 @@ Song backgroundMusic = { 0 };
 Song backgroundMenu = { 0 };
 SoundEffect gameOverSound = { 0 };
 SoundEffect damageTaken = { 0 };
+SoundEffect damageDone = { 0 };
 
 // Button variables
 bool btnAction = false; 
@@ -301,6 +302,9 @@ void InitGame(void)
 
     damageTaken.sound = LoadSound("Assets/NinjaAdventure/Sounds/Game/Hit4.wav");
     SetSoundVolume(damageTaken.sound, 0.4);
+
+    damageDone.sound = LoadSound("Assets/NinjaAdventure/Sounds/Game/Sword2.wav");
+    SetSoundVolume(damageDone.sound, 0.2);
 
     // Initialize Button variables
     fxButton = LoadSound("Assets/NinjaAdventure/Sounds/Menu/Menu9.wav");   // Load button sound
@@ -1178,6 +1182,7 @@ void UpdateGame(void)
                         {
                             if (CheckCollisionRecs(shoot[i].rec, enemy[j].enemyDest))
                             {
+                                PlaySound(damageDone.sound);
                                 shoot[i].active = false;
 
                                 if(j % 4 == 0)
