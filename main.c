@@ -137,6 +137,12 @@ Rectangle sourceRec;
 Rectangle btnBounds;
 Vector2 mousePoint = { 0, 0 };
 
+bool btnActionCredits = false; 
+bool isPressedCredits = false;
+Texture2D buttonCredits;
+Rectangle creditsRec; 
+Rectangle creditsBounds;
+
 // Current Screen variables
 GameScreen currentScreen = LOGO;
 Texture2D backgroundLogo, backgroundTitle;
@@ -146,6 +152,10 @@ Vector2 bgOrigin;
 
 // Main background variables
 Texture2D backgroundMain;
+
+// Credits variables
+bool opened = false;
+Texture2D credits;
 
 //------------------------------------------------------------------------------------
 // Module Functions Declaration (local)
@@ -283,6 +293,7 @@ void InitGame(void)
     backgroundMain = LoadTexture("Assets/NinjaAdventure/Backgrounds/backgroundMain.png");
     backgroundLogo = LoadTexture("Assets/NinjaAdventure/Backgrounds/background.png");
     backgroundTitle = LoadTexture("Assets/NinjaAdventure/Backgrounds/backgroud_titlescreen.png");
+    credits = LoadTexture("Assets/NinjaAdventure/Backgrounds/credits.png");
     bgSrc.x = 0;
     bgSrc.y = 0;
     bgSrc.width = 1280;
@@ -321,6 +332,16 @@ void InitGame(void)
     btnBounds.y = GetScreenHeight()/1.65 + button.height/2;
     btnBounds.width = 160;
     btnBounds.height = 52;
+
+    buttonCredits = LoadTexture("Assets/NinjaAdventure/HUD/credits_a.png"); // Load button texture
+    creditsRec.x = 0;
+    creditsRec.y = 0;
+    creditsRec.width = 50;
+    creditsRec.height = 50;
+    creditsBounds.x = GetScreenWidth() - 75;
+    creditsBounds.y = GetScreenHeight() - 75;
+    creditsBounds.width = 40;
+    creditsBounds.height = 40;
 
     // Initialize player
     player.playerSrc.x =  0;
@@ -770,7 +791,7 @@ void UpdateGame(void)
                 {
                     if (load) {
                         // Initialize enemy sprite
-                         // Initialize enemy sprite
+                        // Initialize enemy sprite
                         for (int i = 0; i < activeEnemies; i+=5){
                             enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Reptile.png");
                             enemy[i].life = 3;
@@ -827,7 +848,7 @@ void UpdateGame(void)
                         {
                             if (!enemy[i].active) enemy[i].active = true;
                         }
-                        
+
                         activeEnemies = SURVIVE_WAVE;
                         wave = SURVIVE;
                         smooth = false;
@@ -1578,10 +1599,14 @@ void UpdateTitle(void)
     btnBounds.x = GetScreenWidth()/1.985 - button.width/2; 
     btnBounds.y = GetScreenHeight()/1.65 + button.height/2;
 
+    creditsBounds.x = GetScreenWidth() - 75;
+    creditsBounds.y = GetScreenHeight() - 75;
+
     mousePoint = GetMousePosition();
     btnAction = false;
+    btnActionCredits = false; 
 
-    // Check button state
+    // Check start button state
     if (CheckCollisionPointRec(mousePoint, btnBounds))
     {
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
@@ -1596,12 +1621,42 @@ void UpdateTitle(void)
         button = LoadTexture("Assets/NinjaAdventure/HUD/play_c.png");
     }
 
+    // Check credits button state
+    if (CheckCollisionPointRec(mousePoint, creditsBounds))
+    {
+        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && !opened){
+            buttonCredits = LoadTexture("Assets/NinjaAdventure/HUD/credits_d.png");
+        }
+
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) 
+            btnActionCredits = true;
+    }
+    else 
+    {
+        buttonCredits = LoadTexture("Assets/NinjaAdventure/HUD/credits_a.png");
+    }
+
     if (btnAction)
     {
         PlaySound(fxButton);
         isPressed = true;
         InitGame();
         gameOver = false;
+    }
+
+    if (btnActionCredits && !opened)
+    {
+        PlaySound(fxButton);
+        isPressedCredits = true;
+        opened = true;
+    }
+
+    // Close credits
+    if(CheckCollisionPointRec(mousePoint, (Rectangle){1010, 205, 13, 13})){
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            isPressedCredits = false;
+            opened = false;
+        }
     }
 }
 
@@ -1615,6 +1670,13 @@ void DrawTitle(void)
 
     // Draw button frame
     DrawTextureRec(button, sourceRec, (Vector2){ btnBounds.x, btnBounds.y }, WHITE); 
+    DrawTextureRec(buttonCredits, creditsRec, (Vector2){ creditsBounds.x, creditsBounds.y }, WHITE); 
+
+    if (isPressedCredits){       
+        DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), CLITERAL(Color){ 0, 0, 0, 100});
+        DrawTexturePro(credits, (Rectangle){0, 0, 500, 540}, (Rectangle){GetScreenWidth()/2, GetScreenHeight()/2, 500, 540}, (Vector2){250, 270}, 0, WHITE);  
+    }
+
 }
 
 
