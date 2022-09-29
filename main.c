@@ -10,17 +10,19 @@
 // Some Defines
 //----------------------------------------------------------------------------------
 #define NUM_SHOOTS 50
-#define NUM_MAX_ENEMIES 50
+#define NUM_MAX_ENEMIES 60
 #define FIRST_WAVE 20
 #define SECOND_WAVE 30
 #define THIRD_WAVE 50
+#define BOSS_WAVE 50
+#define SURVIVE_WAVE 60
 
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
 //----------------------------------------------------------------------------------
 typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, ENDING } GameScreen;
-typedef enum { FIRST = 0, SECOND, THIRD } EnemyWave;
+typedef enum { FIRST = 0, SECOND, THIRD, BOSS, SURVIVE} EnemyWave;
 
 typedef struct Player{
     Rectangle playerSrc;
@@ -43,6 +45,8 @@ typedef struct Enemy{
     bool collided;
     int enemyFrame;
     int enemyDir;
+    int life;
+    int type;
     Rectangle enemySrc;
     Rectangle enemyDest;
     Vector2 speed;
@@ -396,8 +400,8 @@ void InitGame(void)
         enemy[i].enemyDest.y = GetRandomValue(0, GetScreenHeight() - enemy[i].enemyDest.height);
         enemy[i].enemyDest.width = 16;
         enemy[i].enemyDest.height = 16;
-        enemy[i].speed.x = 1;
-        enemy[i].speed.y = 1;
+        enemy[i].speed.x = 0.5;
+        enemy[i].speed.y = 0.5;
         enemy[i].origin.x = enemy[i].enemyDest.width/2;
         enemy[i].origin.y = enemy[i].enemyDest.height/2;
         enemy[i].active = true;
@@ -416,8 +420,8 @@ void InitGame(void)
         enemy[i].enemyDest.y = GetRandomValue(0, GetScreenHeight() - enemy[i].enemyDest.height);
         enemy[i].enemyDest.width = 16;
         enemy[i].enemyDest.height = 16;
-        enemy[i].speed.x = 1;
-        enemy[i].speed.y = 1;
+        enemy[i].speed.x = 0.5;
+        enemy[i].speed.y = 0.5;
         enemy[i].origin.x = enemy[i].enemyDest.width/2;
         enemy[i].origin.y = enemy[i].enemyDest.height/2;
         enemy[i].active = true;
@@ -436,8 +440,8 @@ void InitGame(void)
         enemy[i].enemyDest.y = GetRandomValue(GetScreenHeight(), GetScreenHeight() + 1000);
         enemy[i].enemyDest.width = 16;
         enemy[i].enemyDest.height = 16;
-        enemy[i].speed.x = 1;
-        enemy[i].speed.y = 1;
+        enemy[i].speed.x = 0.5;
+        enemy[i].speed.y = 0.5;
         enemy[i].origin.x = enemy[i].enemyDest.width/2;
         enemy[i].origin.y = enemy[i].enemyDest.height/2;
         enemy[i].active = true;
@@ -456,8 +460,8 @@ void InitGame(void)
         enemy[i].enemyDest.y = GetRandomValue(-1000, 0);
         enemy[i].enemyDest.width = 16;
         enemy[i].enemyDest.height = 16;
-        enemy[i].speed.x = 1;
-        enemy[i].speed.y = 1;
+        enemy[i].speed.x = 0.5;
+        enemy[i].speed.y = 0.5;
         enemy[i].origin.x = enemy[i].enemyDest.width/2;
         enemy[i].origin.y = enemy[i].enemyDest.height/2;
         enemy[i].active = true;
@@ -523,11 +527,17 @@ void UpdateGame(void)
                 {
                     if (load) {
                         // Initialize enemy sprite
-                        for (int i = 0; i < activeEnemies; i+=2)
-                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Cyclope/SpriteSheet.png");
+                        for (int i = 0; i < activeEnemies; i+=2){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Flam2/SpriteSheet.png");
+                            enemy[i].life = 1;
+                            enemy[i].type = 1;
+                        }
 
-                        for (int i = 1; i < activeEnemies; i+=2)
+                        for (int i = 1; i < activeEnemies; i+=2){
                             enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Flam/SpriteSheet.png");
+                            enemy[i].life = 1;
+                            enemy[i].type = 1;
+                        }
                         
 
                         load = false;
@@ -563,12 +573,23 @@ void UpdateGame(void)
                 {
                     if (load) {
                         // Initialize enemy sprite
-                        for (int i = 0; i < activeEnemies; i+=2)
+                        for (int i = 0; i < activeEnemies; i+=3){
                             enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Cyclope/SpriteSheet.png");
+                            enemy[i].life = 2;
+                            enemy[i].type = 2;
+                        }
 
-                        for (int i = 1; i < activeEnemies; i+=2)
+                        for (int i = 1; i < activeEnemies; i+=3){
                             enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Flam/SpriteSheet.png");
-                        
+                            enemy[i].life = 1;
+                            enemy[i].type = 1;
+                        }
+
+                        for (int i = 2; i < activeEnemies; i+=3){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Flam2/SpriteSheet.png");
+                            enemy[i].life = 1;
+                            enemy[i].type = 1;
+                        }
 
                         load = false;
                     }
@@ -603,12 +624,43 @@ void UpdateGame(void)
                 {
                     if (load) {
                         // Initialize enemy sprite
-                        for (int i = 0; i < activeEnemies; i+=2)
-                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Cyclope/SpriteSheet.png");
+                        for (int i = 0; i < activeEnemies; i+=5){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Reptile.png");
+                            enemy[i].life = 3;
+                            enemy[i].type = 3;
+                            enemy[i].enemyDest.width = 32;
+                            enemy[i].enemyDest.height = 32;
+                        }
 
-                        for (int i = 1; i < activeEnemies; i+=2)
+                        for (int i = 1; i < activeEnemies; i+=5){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Cyclope/SpriteSheet.png");
+                            enemy[i].life = 2;
+                            enemy[i].type = 2;
+                            enemy[i].enemyDest.width = 16;
+                            enemy[i].enemyDest.height = 16;
+                        }
+
+                        for (int i = 2; i < activeEnemies; i+=5){
                             enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Flam/SpriteSheet.png");
-                        
+                            enemy[i].life = 1;
+                            enemy[i].type = 1;
+                            enemy[i].enemyDest.width = 16;
+                            enemy[i].enemyDest.height = 16;
+                        }
+
+                        for (int i = 3; i < activeEnemies; i+=5){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Flam2/SpriteSheet.png");
+                            enemy[i].life = 1;
+                            enemy[i].type = 1;
+                            enemy[i].enemyDest.width = 16;
+                            enemy[i].enemyDest.height = 16;
+                        }
+
+                        for (int i = 4; i < activeEnemies; i+=5){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Snake.png");
+                            enemy[i].life = 1;
+                            enemy[i].type = 1;
+                        }
 
                         load = false;
                     }
@@ -622,7 +674,166 @@ void UpdateGame(void)
 
                     if (smooth) alpha -= 0.02f;
 
-                    if (enemiesKill == activeEnemies) victory = true;
+                    if (enemiesKill == activeEnemies)
+                    {
+                        enemiesKill = 0;
+
+                        for (int i = 0; i < activeEnemies; i++)
+                        {
+                            if (!enemy[i].active) enemy[i].active = true;
+                        }
+
+                        activeEnemies = BOSS_WAVE;
+                        wave = BOSS;
+                        smooth = false;
+                        load = true;
+                        alpha = 0.0f;
+                    } 
+
+                } break;
+
+                case BOSS:
+                {
+                    if (load) {
+                        // Initialize enemy sprite
+                         // Initialize enemy sprite
+                        for (int i = 0; i < activeEnemies; i+=5){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Reptile.png");
+                            enemy[i].life = 3;
+                            enemy[i].type = 3;
+                            enemy[i].enemyDest.width = 32;
+                            enemy[i].enemyDest.height = 32;
+                        }
+
+                        for (int i = 1; i < activeEnemies; i+=5){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Cyclope/SpriteSheet.png");
+                            enemy[i].life = 2;
+                            enemy[i].type = 2;
+                            enemy[i].enemyDest.width = 16;
+                            enemy[i].enemyDest.height = 16;
+                        }
+
+                        for (int i = 2; i < activeEnemies; i+=5){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Flam/SpriteSheet.png");
+                            enemy[i].life = 1;
+                            enemy[i].type = 1;
+                            enemy[i].enemyDest.width = 16;
+                            enemy[i].enemyDest.height = 16;
+                        }
+
+                        for (int i = 3; i < activeEnemies; i+=5){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Flam2/SpriteSheet.png");
+                            enemy[i].life = 1;
+                            enemy[i].type = 1;
+                            enemy[i].enemyDest.width = 16;
+                            enemy[i].enemyDest.height = 16;
+                        }
+
+                        for (int i = 4; i < activeEnemies; i+=5){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Snake.png");
+                            enemy[i].life = 1;
+                            enemy[i].type = 1;
+                        }
+                        
+                        load = false;
+                    }
+
+                    if (!smooth)
+                    {
+                        alpha += 0.02f;
+
+                        if (alpha >= 1.0f) smooth = true;
+                    }
+
+                    if (smooth) alpha -= 0.02f;
+
+                    if (enemiesKill == activeEnemies)
+                    {
+                        enemiesKill = 0;
+
+                        for (int i = 0; i < activeEnemies; i++)
+                        {
+                            if (!enemy[i].active) enemy[i].active = true;
+                        }
+
+                        victory = true;
+                        activeEnemies = SURVIVE_WAVE;
+                        wave = SURVIVE;
+                        smooth = false;
+                        load = true;
+                        alpha = 0.0f;
+                    }      
+
+                } break;
+
+                case SURVIVE:
+                {
+                    if (load) {
+                        // Initialize enemy sprite
+                         // Initialize enemy sprite
+                        for (int i = 0; i < activeEnemies; i+=5){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Reptile.png");
+                            enemy[i].life = 3;
+                            enemy[i].type = 3;
+                            enemy[i].enemyDest.width = 32;
+                            enemy[i].enemyDest.height = 32;
+                        }
+
+                        for (int i = 1; i < activeEnemies; i+=5){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Cyclope/SpriteSheet.png");
+                            enemy[i].life = 2;
+                            enemy[i].type = 2;
+                            enemy[i].enemyDest.width = 16;
+                            enemy[i].enemyDest.height = 16;
+                        }
+
+                        for (int i = 2; i < activeEnemies; i+=5){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Flam/SpriteSheet.png");
+                            enemy[i].life = 1;
+                            enemy[i].type = 1;
+                            enemy[i].enemyDest.width = 16;
+                            enemy[i].enemyDest.height = 16;
+                        }
+
+                        for (int i = 3; i < activeEnemies; i+=5){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Flam2/SpriteSheet.png");
+                            enemy[i].life = 1;
+                            enemy[i].type = 1;
+                            enemy[i].enemyDest.width = 16;
+                            enemy[i].enemyDest.height = 16;
+                        }
+
+                        for (int i = 4; i < activeEnemies; i+=5){
+                            enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Snake.png");
+                            enemy[i].life = 1;
+                            enemy[i].type = 1;
+                        }
+                        
+                        load = false;
+                    }
+
+                    if (!smooth)
+                    {
+                        alpha += 0.02f;
+
+                        if (alpha >= 1.0f) smooth = true;
+                    }
+
+                    if (smooth) alpha -= 0.02f;
+
+                    if (enemiesKill == activeEnemies){
+                        enemiesKill = 0;
+                        for (int i = 0; i < activeEnemies; i++)
+                        {
+                            if (!enemy[i].active) enemy[i].active = true;
+                        }
+                        
+                        activeEnemies = SURVIVE_WAVE;
+                        wave = SURVIVE;
+                        smooth = false;
+                        load = true;
+                        alpha = 0.0f;
+                    }
 
                 } break;
 
@@ -1028,8 +1239,6 @@ void UpdateGame(void)
                 }  
             }
 
-
-
             // Enemy movement animation
             for (int i = 0; i < activeEnemies; i++)
             {
@@ -1066,7 +1275,7 @@ void UpdateGame(void)
 
                 for (int i = 0; i < NUM_SHOOTS; i++)
                 {
-                    if (!shoot[i].active && shootRate%20 == 0)
+                    if (!shoot[i].active && shootRate%40 == 0)
                     {
                         shoot[i].rec.x = player.playerDest.x;
                         shoot[i].rec.y = player.playerDest.y + 10;
@@ -1124,11 +1333,11 @@ void UpdateGame(void)
                 if (shoot[i].active)
                 {
                     // Shuriken throw animation
-                    if (frameCount % 6 == 0){
-                        shoot[i].shootSrc.x = shoot[i].bulletFrame * 20;
+                    if (frameCount % 4 == 0){
+                        shoot[i].shootSrc.x = shoot[i].bulletFrame * 16;
                         shoot[i].bulletFrame++;
                                                   
-                        if (shoot[i].bulletFrame > 3)
+                        if (shoot[i].bulletFrame > 1)
                             shoot[i].bulletFrame = 0;                     
                     }
 
@@ -1184,33 +1393,56 @@ void UpdateGame(void)
                             {
                                 PlaySound(damageDone.sound);
                                 shoot[i].active = false;
+                                enemy[j].life--;
+                            
+                                if (enemy[j].life == 0){
+                                    if(j % 4 == 0)
+                                    {
+                                        enemy[j].enemyDest.x = GetRandomValue(GetScreenWidth(), GetScreenWidth() + 1000);
+                                        enemy[j].enemyDest.y = GetRandomValue(0, GetScreenHeight() - enemy[i].enemyDest.height);
+                                        enemy[j].active = false;
+                                    }
 
-                                if(j % 4 == 0)
-                                {
-                                    enemy[j].enemyDest.x = GetRandomValue(GetScreenWidth(), GetScreenWidth() + 1000);
-                                    enemy[j].enemyDest.y = GetRandomValue(0, GetScreenHeight() - enemy[i].enemyDest.height);
+                                    else if (j % 4 == 1)
+                                    {
+                                        enemy[j].enemyDest.x = GetRandomValue(-1000, 0);
+                                        enemy[j].enemyDest.y = GetRandomValue(0, GetScreenHeight() - enemy[i].enemyDest.height);
+                                        enemy[j].active = false;
+                                    }
+
+                                    else if (j % 4 == 2)
+                                    {
+                                        enemy[j].enemyDest.x = GetRandomValue(0, GetScreenWidth() - enemy[i].enemyDest.width);
+                                        enemy[j].enemyDest.y = GetRandomValue(GetScreenHeight(), GetScreenHeight() + 1000);
+                                        enemy[j].active = false;
+                                    }
+
+                                    else if (j % 4 == 3)
+                                    {
+                                        enemy[j].enemyDest.x = GetRandomValue(0, GetScreenWidth() - enemy[i].enemyDest.width);
+                                        enemy[j].enemyDest.y = GetRandomValue(-1000, 0);
+                                        enemy[j].active = false;
+                                    }
+
+                                    // Restore life
+                                    switch (enemy[j].type)
+                                    {
+                                        case 1: enemy[j].life = 1;
+                                                break;
+                                        
+                                        case 2: enemy[j].life = 2;
+                                                break;
+
+                                        case 3: enemy[j].life = 3;
+                                                break;
+
+                                        default: break;
+                                    }
+
+                                    
+                                    enemiesKill++;
+                                    score += 100;
                                 }
-
-                                else if (j % 4 == 1)
-                                {
-                                    enemy[j].enemyDest.x = GetRandomValue(-1000, 0);
-                                    enemy[j].enemyDest.y = GetRandomValue(0, GetScreenHeight() - enemy[i].enemyDest.height);
-                                }
-
-                                else if (j % 4 == 2)
-                                {
-                                    enemy[j].enemyDest.x = GetRandomValue(0, GetScreenWidth() - enemy[i].enemyDest.width);
-                                    enemy[j].enemyDest.y = GetRandomValue(GetScreenHeight(), GetScreenHeight() + 1000);
-                                }
-
-                                else if (j % 4 == 3)
-                                {
-                                    enemy[j].enemyDest.x = GetRandomValue(0, GetScreenWidth() - enemy[i].enemyDest.width);
-                                    enemy[j].enemyDest.y = GetRandomValue(-1000, 0);
-                                }
-
-                                enemiesKill++;
-                                score += 100;
                                 //shootRate = 0;
                             }
 
@@ -1277,9 +1509,10 @@ void DrawGame(void)
         DrawTexturePro(playerLife[1].life, playerLife[1].lifeSrc, playerLife[1].lifeDest, playerLife[1].origin, 0, WHITE);
         DrawTexturePro(playerLife[2].life, playerLife[2].lifeSrc, playerLife[2].lifeDest, playerLife[2].origin, 0, WHITE);
 
-        if (wave == FIRST) DrawText("FIRST WAVE", GetScreenWidth()/2 - MeasureText("FIRST WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(BLACK, alpha));
-        else if (wave == SECOND) DrawText("SECOND WAVE",GetScreenWidth()/2 - MeasureText("SECOND WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(BLACK, alpha));
-        else if (wave == THIRD) DrawText("THIRD WAVE", GetScreenWidth()/2 - MeasureText("THIRD WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(BLACK, alpha));
+        if (wave == FIRST) DrawText("FIRST WAVE", GetScreenWidth()/2 - MeasureText("FIRST WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(RAYWHITE, alpha));
+        else if (wave == SECOND) DrawText("SECOND WAVE",GetScreenWidth()/2 - MeasureText("SECOND WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(RAYWHITE, alpha));
+        else if (wave == THIRD) DrawText("THIRD WAVE", GetScreenWidth()/2 - MeasureText("THIRD WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(RAYWHITE, alpha));
+        else if (wave == BOSS) DrawText("DEFEAT THE BOSS!", GetScreenWidth()/2 - MeasureText("DEFEAT THE BOSS", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(RAYWHITE, alpha));
 
         for (int i = 0; i < activeEnemies; i++)
         {
@@ -1294,7 +1527,7 @@ void DrawGame(void)
 
         DrawText(TextFormat("%04i", score), 40, 40, 40, RAYWHITE);
 
-        if (victory) DrawText("YOU WIN", GetScreenWidth()/2 - MeasureText("YOU WIN", 40)/2, GetScreenHeight()/2 - 40, 40, BLACK);
+        if (victory) DrawText("YOU WIN", GetScreenWidth()/2 - MeasureText("YOU WIN", 40)/2, GetScreenHeight()/2 - 40, 40, RAYWHITE);
 
         if (pause) DrawText("GAME PAUSED", GetScreenWidth()/2 - MeasureText("GAME PAUSED", 40)/2, GetScreenHeight()/2 - 40, 40, GRAY);
     }
