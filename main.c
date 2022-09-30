@@ -21,7 +21,7 @@
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
 //----------------------------------------------------------------------------------
-typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, ENDING } GameScreen;
+typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, NARRATIVE, ENDING } GameScreen;
 typedef enum { FIRST = 0, SECOND, THIRD, BOSS, SURVIVE} EnemyWave;
 
 typedef struct Player{
@@ -157,6 +157,14 @@ Texture2D backgroundMain;
 bool opened = false;
 Texture2D credits;
 
+// Narrative variables
+int countNarrative = 255;
+int narrativeScreen = 0;
+Texture2D narrative;
+Texture2D loading;
+Song narrativeMusic;
+SoundEffect continueNarrative;
+
 //------------------------------------------------------------------------------------
 // Module Functions Declaration (local)
 //------------------------------------------------------------------------------------
@@ -166,7 +174,9 @@ void DrawGame(void);
 void UpdateLogo(void);         
 void DrawLogo(void);         
 void UpdateTitle(void);    
-void DrawTitle(void);      
+void DrawTitle(void);   
+void UpdateNarrative(void);    
+void DrawNarrative(void);    
 void UnloadGame(void);       
 void UpdateDrawFrame(void);  
 void DrawScreen(void);       
@@ -220,8 +230,19 @@ int main(void)
                 // If button play is pressed, change to GAMEPLAY screen
                 if (isPressed)
                 {
-                    currentScreen = GAMEPLAY;
+                    currentScreen = NARRATIVE;
                     isPressed = false;
+                }
+            } break;
+
+            case NARRATIVE:
+            {
+                UpdateNarrative();
+
+                // If button play is pressed, change to GAMEPLAY screen
+                if (narrativeScreen == 3)
+                {
+                    currentScreen = GAMEPLAY;
                 }
             } break;
 
@@ -294,6 +315,8 @@ void InitGame(void)
     backgroundLogo = LoadTexture("Assets/NinjaAdventure/Backgrounds/background.png");
     backgroundTitle = LoadTexture("Assets/NinjaAdventure/Backgrounds/backgroud_titlescreen.png");
     credits = LoadTexture("Assets/NinjaAdventure/Backgrounds/credits.png");
+    narrative = LoadTexture("Assets/NinjaAdventure/Backgrounds/narrative.png");
+    loading = LoadTexture("Assets/NinjaAdventure/Backgrounds/loading.png");
     bgSrc.x = 0;
     bgSrc.y = 0;
     bgSrc.width = 1280;
@@ -311,18 +334,26 @@ void InitGame(void)
 
     backgroundMenu.song = LoadMusicStream("Assets/NinjaAdventure/Musics/1 - Adventure Begin.ogg");
     SetMusicVolume(backgroundMenu.song,  0.2);
+
+    narrativeMusic.song = LoadMusicStream("Assets/NinjaAdventure/Musics/13 - Mystical.ogg");
+    SetMusicVolume(narrativeMusic.song,  0.4);
     
     gameOverSound.sound = LoadSound("Assets/NinjaAdventure/Sounds/Game/GameOver.wav");
     SetSoundVolume(gameOverSound.sound, 0.5);
 
     damageTaken.sound = LoadSound("Assets/NinjaAdventure/Sounds/Game/Hit4.wav");
-    SetSoundVolume(damageTaken.sound, 0.4);
+    SetSoundVolume(damageTaken.sound, 0.2);
 
     damageDone.sound = LoadSound("Assets/NinjaAdventure/Sounds/Game/Sword2.wav");
     SetSoundVolume(damageDone.sound, 0.2);
 
-    // Initialize Button variables
+    continueNarrative.sound = LoadSound("Assets/NinjaAdventure/Sounds/Menu/Menu1.wav");
+    SetSoundVolume(continueNarrative.sound, 0.6);
+
     fxButton = LoadSound("Assets/NinjaAdventure/Sounds/Menu/Menu9.wav");   // Load button sound
+    SetSoundVolume(fxButton, 0.4);
+
+    // Initialize Button variables
     button = LoadTexture("Assets/NinjaAdventure/HUD/play_c.png"); // Load button texture
     sourceRec.x = 0;
     sourceRec.y = 0;
@@ -1681,6 +1712,38 @@ void DrawTitle(void)
 
 
 //------------------------------------------------------------------------------------
+// Update Title (one frame)
+//------------------------------------------------------------------------------------
+void UpdateNarrative(void)
+{
+    
+    UpdateMusicStream(narrativeMusic.song);
+    PlayMusicStream(narrativeMusic.song);
+
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+        narrativeScreen++;
+        PlaySound(continueNarrative.sound);
+    }
+    
+}
+
+
+//------------------------------------------------------------------------------------
+// Draw Title (one frame)
+//------------------------------------------------------------------------------------
+void DrawNarrative(void)
+{
+    DrawTexturePro(narrative, (Rectangle){0, 900 * narrativeScreen, 1600, 900}, (Rectangle){0, 0, GetScreenWidth(), GetScreenHeight()}, (Vector2){0, 0}, 0, WHITE);  
+
+    countNarrative -= 0.1;
+    if (countNarrative >= 0){
+        DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), CLITERAL(Color){ 23, 29, 23, countNarrative});  
+    }
+
+}
+
+
+//------------------------------------------------------------------------------------
 // Drawn Different Screens [general]
 //------------------------------------------------------------------------------------
 void DrawScreen()
@@ -1699,6 +1762,11 @@ void DrawScreen()
             case TITLE:
             {
                 DrawTitle();
+
+            } break;
+            case NARRATIVE:
+            {
+                DrawNarrative();
 
             } break;
             case GAMEPLAY:
@@ -1734,9 +1802,12 @@ void UnloadGame(void)
     UnloadTexture(backgroundLogo);
     UnloadTexture(backgroundTitle);
     UnloadTexture(backgroundMain);
+    UnloadTexture(narrative);
+    UnloadTexture(credits);
     UnloadTexture(button);
     UnloadMusicStream(backgroundMusic.song);
     UnloadMusicStream(backgroundMenu.song);
+    UnloadMusicStream(narrativeMusic.song);
     UnloadSound(gameOverSound.sound);
     UnloadSound(damageTaken.sound);
     UnloadSound(fxButton);
