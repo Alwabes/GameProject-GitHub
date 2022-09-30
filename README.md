@@ -32,8 +32,8 @@ Sobreviver o máximo possível, sem limite de tempo, às hordas de inimigos que 
 #**REGRAS** <br/>
 -	O jogador possui 3 vidas.
 -	Em caso de morte, o jogo finalizará com a mensagem de derrota.
--	Há formas de recuperar vida durante o trajeto.
--	Para passar para o próximo estágio é necessário cumprir “missões”, não sendo obrigatório eliminar todos os inimigos.
+-	Não há formas de recuperar vida durante o trajeto.
+-	Para passar para o próximo estágio é necessário eliminar todos enimigos da onda.
 [...]
 
 .<br/>
