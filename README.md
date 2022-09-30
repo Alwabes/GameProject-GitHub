@@ -42,12 +42,7 @@ Sobreviver o máximo possível, sem limite de tempo, às hordas de inimigos que 
 
 #**CÁLCULO DE PONTUAÇÃO** <br/>
 A pontuação é calculada pela eliminação dos inimigos e níveis alcançados.
-Cada inimigo, dependendo da dificuldade, resulta em uma certa quantia de pontos. Cada nível alcançado, aumenta o multiplicador de pontos.
-_Exemplo:_ 
+Cada inimigo eliminado garante 100 pontos ao jogador.
 
-Inimigo de nível 1: 1 ponto                     Nível 1: multiplicador (x1)<br/>
-Inimigo de nível 2: 5 pontos                    Nível 2: multiplicador (x2)<br/>
-Inimigo de nível 3: 10 pontos                   Nível 3: multiplicador (x3)<br/>
-[...]                                           [...]<br/>
 <br/>
 **Cálculo da pontuação:** _pontuação das eliminações * multiplicador_
