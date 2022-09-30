@@ -838,7 +838,6 @@ void UpdateGame(void)
                 {
                     if (load) {
                         // Initialize enemy sprite
-                        // Initialize enemy sprite
                         for (int i = 0; i < activeEnemies; i+=5){
                             enemy[i].enemySprite = LoadTexture("Assets/NinjaAdventure/Actor/Monsters/Reptile.png");
                             enemy[i].life = 3;
@@ -1580,7 +1579,7 @@ void DrawGame(void)
         if (wave == FIRST) DrawText("FIRST WAVE", GetScreenWidth()/2 - MeasureText("FIRST WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(RAYWHITE, alpha));
         else if (wave == SECOND) DrawText("SECOND WAVE",GetScreenWidth()/2 - MeasureText("SECOND WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(RAYWHITE, alpha));
         else if (wave == THIRD) DrawText("THIRD WAVE", GetScreenWidth()/2 - MeasureText("THIRD WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(RAYWHITE, alpha));
-        else if (wave == BOSS) DrawText("DEFEAT THE BOSS!", GetScreenWidth()/2 - MeasureText("DEFEAT THE BOSS", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(RAYWHITE, alpha));
+        else if (wave == BOSS) DrawText("SURVIVE!", GetScreenWidth()/2 - MeasureText("SURVIVE!", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(RAYWHITE, alpha));
 
         for (int i = 0; i < activeEnemies; i++)
         {
