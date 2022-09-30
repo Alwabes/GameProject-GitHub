@@ -165,6 +165,10 @@ Texture2D loading;
 Song narrativeMusic;
 SoundEffect continueNarrative;
 
+// Rules variables
+bool rulesOpen = true;
+Texture2D rules;
+
 //------------------------------------------------------------------------------------
 // Module Functions Declaration (local)
 //------------------------------------------------------------------------------------
@@ -243,6 +247,7 @@ int main(void)
                 if (narrativeScreen == 3)
                 {
                     currentScreen = GAMEPLAY;
+                    narrativeScreen = 0; // To replay the narrative
                 }
             } break;
 
@@ -317,6 +322,7 @@ void InitGame(void)
     credits = LoadTexture("Assets/NinjaAdventure/Backgrounds/credits.png");
     narrative = LoadTexture("Assets/NinjaAdventure/Backgrounds/narrative.png");
     loading = LoadTexture("Assets/NinjaAdventure/Backgrounds/loading.png");
+    rules = LoadTexture("Assets/NinjaAdventure/Backgrounds/rules.png");
     bgSrc.x = 0;
     bgSrc.y = 0;
     bgSrc.width = 1280;
@@ -562,8 +568,18 @@ void UpdateGame(void)
 
     // Time counter (60|1sec)
     frameCount++;
+    
+    // Rules screen
+    mousePoint = GetMousePosition();
 
-    if (!gameOver)
+    if(CheckCollisionPointRec(mousePoint, (Rectangle){717, 680, 167, 43})){
+        if (rulesOpen && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            rulesOpen = false;
+            PlaySound(fxButton);
+        }
+    }
+
+    if (!gameOver && !rulesOpen)
     {
         // Background music
         UpdateMusicStream(backgroundMusic.song);
@@ -1582,6 +1598,11 @@ void DrawGame(void)
         if (victory) DrawText("YOU WIN", GetScreenWidth()/2 - MeasureText("YOU WIN", 40)/2, GetScreenHeight()/2 - 40, 40, RAYWHITE);
 
         if (pause) DrawText("GAME PAUSED", GetScreenWidth()/2 - MeasureText("GAME PAUSED", 40)/2, GetScreenHeight()/2 - 40, 40, GRAY);
+
+        if (rulesOpen){       
+            DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), CLITERAL(Color){ 0, 0, 0, 160});
+            DrawTexturePro(rules, (Rectangle){0, 0, 415, 618}, (Rectangle){GetScreenWidth()/2, GetScreenHeight()/2, 415, 618}, (Vector2){207.5, 309}, 0, WHITE); 
+        }
     }
     else DrawText("PRESS [ENTER] TO PLAY AGAIN", GetScreenWidth()/2 - MeasureText("PRESS [ENTER] TO PLAY AGAIN", 20)/2, GetScreenHeight()/2 - 50, 20, GRAY);
 
@@ -1671,6 +1692,7 @@ void UpdateTitle(void)
     {
         PlaySound(fxButton);
         isPressed = true;
+        rulesOpen = true;
         InitGame();
         gameOver = false;
     }
@@ -1712,7 +1734,7 @@ void DrawTitle(void)
 
 
 //------------------------------------------------------------------------------------
-// Update Title (one frame)
+// Update Narrative (one frame)
 //------------------------------------------------------------------------------------
 void UpdateNarrative(void)
 {
@@ -1729,7 +1751,7 @@ void UpdateNarrative(void)
 
 
 //------------------------------------------------------------------------------------
-// Draw Title (one frame)
+// Draw Narrative (one frame)
 //------------------------------------------------------------------------------------
 void DrawNarrative(void)
 {
@@ -1805,6 +1827,7 @@ void UnloadGame(void)
     UnloadTexture(narrative);
     UnloadTexture(credits);
     UnloadTexture(button);
+    UnloadTexture(rules);
     UnloadMusicStream(backgroundMusic.song);
     UnloadMusicStream(backgroundMenu.song);
     UnloadMusicStream(narrativeMusic.song);
