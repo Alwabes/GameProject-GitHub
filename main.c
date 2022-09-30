@@ -297,7 +297,7 @@ int main(void)
             UpdateGame();
 
             // Press R to change to ENDING screen
-            if (IsKeyPressed(KEY_R))
+            if (gameOver)
             {
                 currentScreen = ENDING;
             }
@@ -309,9 +309,11 @@ int main(void)
             UpdateEnd();
 
             // Press enter to return to TITLE screen
-            if (IsKeyPressed(KEY_Y))
+            if (IsKeyPressed(KEY_SPACE))
             {
                 currentScreen = TITLE;
+                gameOver = false;
+                endcount = false;
             }
         }
         break;
@@ -1743,8 +1745,6 @@ void DrawGame(void)
             DrawTexturePro(rules, (Rectangle){0, 0, 415, 618}, (Rectangle){GetScreenWidth() / 2, GetScreenHeight() / 2, 415, 618}, (Vector2){207.5, 309}, 0, WHITE);
         }
     }
-    else
-        DrawText("PRESS [ENTER] TO PLAY AGAIN", GetScreenWidth() / 2 - MeasureText("PRESS [ENTER] TO PLAY AGAIN", 20) / 2, GetScreenHeight() / 2 - 50, 20, GRAY);
 }
 
 //------------------------------------------------------------------------------------
@@ -2092,10 +2092,10 @@ void UpdateEnd(void)
 
     if (endcount)
     {
-        if(gameOver == false)
+        if(gameOver)
         {
             scorerank();
-            gameOver = true;
+            gameOver = false;
         }
 
         if (KEY_ENTER)
@@ -2107,6 +2107,7 @@ void UpdateEnd(void)
             {
                 fread(&rankplayer[i], sizeof(Playerscore), 1, arq);
             }
+            fclose(arq);
         }
     }
 }
@@ -2120,26 +2121,28 @@ void DrawEnd(void)
     if (endcount)
     {
         DrawText("RANK", GetScreenWidth() / 2 - MeasureText("RANK", 20) / 2, 40, 20, GRAY);
-        DrawText(TextFormat("%s", rankplayer[0].name), 800, 80, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[0].name), GetScreenWidth() / 2 - MeasureText(TextFormat("%s", rankplayer[0].name), 20) / 2, 80, 20, GRAY);
         DrawText(TextFormat("%04i", rankplayer[0].fscore), 1000, 80, 20, GRAY);
-        DrawText(TextFormat("%s", rankplayer[1].name), 800, 160, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[1].name),  GetScreenWidth() / 2 - MeasureText(TextFormat("%s", rankplayer[1].name), 20) / 2, 160, 20, GRAY);
         DrawText(TextFormat("%04i", rankplayer[1].fscore), 1000, 160, 20, GRAY);
-        DrawText(TextFormat("%s", rankplayer[2].name), 800, 240, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[2].name),  GetScreenWidth() / 2 - MeasureText(TextFormat("%s", rankplayer[2].name), 20) / 2, 240, 20, GRAY);
         DrawText(TextFormat("%04i", rankplayer[2].fscore), 1000, 240, 20, GRAY);
-        DrawText(TextFormat("%s", rankplayer[3].name), 800, 320, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[3].name),  GetScreenWidth() / 2 - MeasureText(TextFormat("%s", rankplayer[3].name), 20) / 2, 320, 20, GRAY);
         DrawText(TextFormat("%04i", rankplayer[3].fscore), 1000, 320, 20, GRAY);
-        DrawText(TextFormat("%s", rankplayer[4].name), 800, 400, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[4].name),  GetScreenWidth() / 2 - MeasureText(TextFormat("%s", rankplayer[4].name), 20) / 2, 400, 20, GRAY);
         DrawText(TextFormat("%04i", rankplayer[4].fscore), 1000, 400, 20, GRAY);
-        DrawText(TextFormat("%s", rankplayer[5].name), 800, 480, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[5].name),  GetScreenWidth() / 2 - MeasureText(TextFormat("%s", rankplayer[5].name), 20) / 2, 480, 20, GRAY);
         DrawText(TextFormat("%04i", rankplayer[5].fscore), 1000, 480, 20, GRAY);
-        DrawText(TextFormat("%s", rankplayer[6].name), 800, 560, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[6].name),  GetScreenWidth() / 2 - MeasureText(TextFormat("%s", rankplayer[6].name), 20) / 2, 560, 20, GRAY);
         DrawText(TextFormat("%04i", rankplayer[6].fscore), 1000, 560, 20, GRAY);
-        DrawText(TextFormat("%s", rankplayer[7].name), 800, 640, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[7].name),  GetScreenWidth() / 2 - MeasureText(TextFormat("%s", rankplayer[7].name), 20) / 2, 640, 20, GRAY);
         DrawText(TextFormat("%04i", rankplayer[7].fscore), 1000, 640, 20, GRAY);
-        DrawText(TextFormat("%s", rankplayer[8].name), 800, 720, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[8].name),  GetScreenWidth() / 2 - MeasureText(TextFormat("%s", rankplayer[8].name), 20) / 2, 720, 20, GRAY);
         DrawText(TextFormat("%04i", rankplayer[8].fscore), 1000, 720, 20, GRAY);
-        DrawText(TextFormat("%s", rankplayer[9].name), 800, 800, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[9].name),  GetScreenWidth() / 2 - MeasureText(TextFormat("%s", rankplayer[9].name), 20) / 2, 800, 20, GRAY);
         DrawText(TextFormat("%04i", rankplayer[9].fscore), 1000, 800, 20, GRAY);
+        DrawText("PRESS [SPACE] TO PLAY AGAIN", GetScreenWidth() / 2 - MeasureText("PRESS [SPACE] TO PLAY AGAIN", 20) / 2, 850, 20, GRAY);
+        
     }
 
     if (endcount == false)
@@ -2154,7 +2157,8 @@ void DrawEnd(void)
 
         DrawText(player1.name, (int)textBox.x + 5, (int)textBox.y + 8, 40, MAROON);
 
-        DrawText(TextFormat("INPUT CHARS: %i/%i", letterCount, 10), GetScreenWidth() / 2 - MeasureText("PLACE MOUSE OVER INPUT BOX!", 20) / 2, 250, 20, DARKGRAY);
+        DrawText(TextFormat("INPUT CHARS: %i/%i", letterCount, 10), GetScreenWidth() / 2 - MeasureText("INPUT CHARS: %i/%i", 20) / 2, 250, 20, DARKGRAY);
+        DrawText("PRESS [ENTER] TO CONFIRM YOUR NICKNAME", GetScreenWidth() / 2 - MeasureText("PRESS [ENTER] TO CONFIRM YOUR NICKNAME", 20) / 2, 350, 20, GRAY);
 
         if (mouseOnText)
         {
