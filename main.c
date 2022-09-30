@@ -2,7 +2,7 @@
 #include "raylib.h"
 
 #if defined(PLATFORM_WEB)
-    #include <emscripten/emscripten.h>
+#include <emscripten/emscripten.h>
 #endif
 
 //----------------------------------------------------------------------------------
@@ -17,25 +17,46 @@
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
 //----------------------------------------------------------------------------------
-typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, ENDING } GameScreen;
-typedef enum { FIRST = 0, SECOND, THIRD } EnemyWave;
+typedef enum GameScreen
+{
+    LOGO = 0,
+    TITLE,
+    GAMEPLAY,
+    ENDING
+} GameScreen;
+typedef enum
+{
+    FIRST = 0,
+    SECOND,
+    THIRD
+} EnemyWave;
 
-typedef struct Player{
+typedef struct Player
+{
     Rectangle playerSrc;
     Rectangle playerDest;
     Vector2 origin;
     Vector2 speed;
     Texture2D playerSprite;
+
 } Player;
 
-typedef struct Life{
+typedef struct Playerscore
+{
+    char name[11];
+    int fscore;
+} Playerscore;
+
+typedef struct Life
+{
     Rectangle lifeSrc;
     Rectangle lifeDest;
     Vector2 origin;
     Texture2D life;
 } Life;
 
-typedef struct Enemy{
+typedef struct Enemy
+{
     bool active;
     bool free; // for walking freely
     Rectangle rec;
@@ -43,7 +64,8 @@ typedef struct Enemy{
     Color color;
 } Enemy;
 
-typedef struct Shoot{
+typedef struct Shoot
+{
     bool active;
     int bulletDirection;
     int bulletFrame;
@@ -54,12 +76,14 @@ typedef struct Shoot{
     Texture2D shootSprite;
 } Shoot;
 
-typedef struct Song{
+typedef struct Song
+{
     bool musicPaused;
     Music song;
 } Song;
 
-typedef struct SoundEffect{
+typedef struct SoundEffect
+{
     bool soundPaused;
     Sound sound;
 } SoundEffect;
@@ -69,20 +93,21 @@ typedef struct SoundEffect{
 //------------------------------------------------------------------------------------
 
 // Not static const for fullscreen option
-int screenWidth = 1280;
-int screenHeight = 720;
+static int screenWidth = 1600;
+static int screenHeight = 900;
 
 static bool gameOver = false;
-static bool pause =  false;
+static bool pause = false;
 static int score = 0;
 static bool victory = false;
 
-static Player player = { 0 };
-static Player shadow = { 0 };
-static Life playerLife[3] = { 0 };
-static Enemy enemy[NUM_MAX_ENEMIES] = { 0 };
-static Shoot shoot[NUM_SHOOTS] = { 0 };
-static EnemyWave wave = { 0 };
+static Player player = {0};
+static Player shadow = {0};
+static Life playerLife[3] = {0};
+static Enemy enemy[NUM_MAX_ENEMIES] = {0};
+static Shoot shoot[NUM_SHOOTS] = {0};
+static EnemyWave wave = {0};
+static Playerscore rankplayer[10] = {0};
 
 static int shootRate = 0;
 static float alpha = 0.0f;
@@ -92,7 +117,7 @@ static int enemiesKill = 0;
 static bool smooth = false;
 
 // Player's moving animation
-bool moving; 
+bool moving;
 bool alive = true;
 int direction, dirImg, playerFrame, frameCount;
 
@@ -107,19 +132,19 @@ bool damageAnim = false;
 int timerCount = 0;
 
 // Music variables
-Song backgroundMusic = { 0 };
-Song backgroundMenu = { 0 };
-SoundEffect gameOverSound = { 0 };
-SoundEffect damageTaken = { 0 };
+Song backgroundMusic = {0};
+Song backgroundMenu = {0};
+SoundEffect gameOverSound = {0};
+SoundEffect damageTaken = {0};
 
 // Button variables
-Sound fxButton; 
+Sound fxButton;
 Texture2D button;
-Rectangle sourceRec; 
+Rectangle sourceRec;
 Rectangle btnBounds;
-bool btnAction = false; 
+bool btnAction = false;
 bool isPressed = false;
-Vector2 mousePoint = { 0, 0 };
+Vector2 mousePoint = {0, 0};
 
 // Current Screen variables
 GameScreen currentScreen = LOGO;
@@ -131,19 +156,34 @@ Vector2 bgOrigin;
 // Main background variables
 Texture2D backgroundMain;
 
+// text box
+char name[11] = "\0"; // NOTE: One extra space required for null terminator char '\0'
+int letterCount = 0;
+
+Rectangle textBox = {675, 180, 250, 50};
+bool mouseOnText = false;
+
+int framesCounter = 0;
+bool endcount = false;
+Playerscore player1;
+
 //------------------------------------------------------------------------------------
 // Module Functions Declaration (local)
 //------------------------------------------------------------------------------------
-void InitGame(void);         // Initialize game    
+void InitGame(void); // Initialize game
 void UpdateGame(void);
-void DrawGame(void);  
-void UpdateLogo(void);         
-void DrawLogo(void);         
-void UpdateTitle(void);    
-void DrawTitle(void);      
-void UnloadGame(void);       
-void UpdateDrawFrame(void);  
-void DrawScreen(void);       // Draw the current screen
+void DrawGame(void);
+void UpdateLogo(void);
+void DrawLogo(void);
+void UpdateTitle(void);
+void DrawTitle(void);
+void UnloadGame(void);
+void UpdateDrawFrame(void);
+void DrawScreen(void); // Draw the current screen
+void scorerank(void);
+void Input_text(void);
+void UpdateEnd(void);
+void DrawEnd(void);
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -161,7 +201,7 @@ int main(void)
     InitAudioDevice();
     InitGame();
 
-    int framesCounter = 0; 
+    int framesCounter = 0;
 
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop(UpdateDrawFrame, 144, 1);
@@ -170,65 +210,70 @@ int main(void)
     //--------------------------------------------------------------------------------------
 
     // Main game loop
-    while (!WindowShouldClose())    // Detect window close button or ESC key
+    while (!WindowShouldClose()) // Detect window close button or ESC key
     {
-        switch(currentScreen)
+        switch (currentScreen)
         {
-            case LOGO:
+        case LOGO:
+        {
+            UpdateLogo();
+
+            framesCounter++;
+
+            // Wait for 3 seconds (180 frames) before jumping to TITLE screen
+            if (framesCounter == 150)
             {
-                UpdateLogo();
+                currentScreen = TITLE;
+            }
+        }
+        break;
+        case TITLE:
+        {
+            UpdateTitle();
 
-                framesCounter++; 
-
-                // Wait for 3 seconds (180 frames) before jumping to TITLE screen
-                if (framesCounter == 180)
-                {
-                    currentScreen = TITLE;
-                }
-            } break;
-            case TITLE:
+            // Press enter to change to GAMEPLAY screen
+            if (isPressed)
             {
-                UpdateTitle();
+                currentScreen = GAMEPLAY;
+                isPressed = false;
+            }
+        }
+        break;
+        case GAMEPLAY:
+        {
+            UpdateGame();
 
-                // Press enter to change to GAMEPLAY screen
-                if (isPressed)
-                {
-                    currentScreen = GAMEPLAY;
-                    isPressed = false;
-                }
-            } break;
-            case GAMEPLAY:
+            // Press R to change to ENDING screen
+            if (IsKeyPressed(KEY_R))
             {
-                UpdateGame();
+                currentScreen = ENDING;
+            }
+        }
+        break;
+        case ENDING:
+        {
+            UpdateEnd();
 
-                // Press R to change to ENDING screen
-                if (IsKeyPressed(KEY_R))
-                {
-                    currentScreen = ENDING;
-                }
-            } break;
-            case ENDING:
+            // Press enter to return to TITLE screen
+            if (IsKeyPressed(KEY_Y))
             {
-                // TODO: Update ENDING screen variables here!
-
-                // Press enter to return to TITLE screen
-                if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
-                {
-                    currentScreen = TITLE;
-                }
-            } break;
-            default: break;
+                currentScreen = TITLE;
+            }
+        }
+        break;
+        default:
+            break;
         }
 
-        //Draw the current screen
+        // Draw the current screen
         DrawScreen();
     }
 #endif
     // De-Initialization
     //--------------------------------------------------------------------------------------
-    UnloadGame();         // Unload loaded data (textures, sounds, models...)
+    UnloadGame(); // Unload loaded data (textures, sounds, models...)
     CloseAudioDevice();
-    CloseWindow();        // Close window and OpenGL context
+    CloseWindow(); // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
 
     return 0;
@@ -261,11 +306,11 @@ void InitGame(void)
 
     // Initialize audio variables
     backgroundMusic.song = LoadMusicStream("Assets/NinjaAdventure/Musics/4 - Village.ogg");
-    SetMusicVolume(backgroundMusic.song,  0.2);
+    SetMusicVolume(backgroundMusic.song, 0.2);
 
     backgroundMenu.song = LoadMusicStream("Assets/NinjaAdventure/Musics/1 - Adventure Begin.ogg");
-    SetMusicVolume(backgroundMenu.song,  0.2);
-    
+    SetMusicVolume(backgroundMenu.song, 0.2);
+
     gameOverSound.sound = LoadSound("Assets/NinjaAdventure/Sounds/Game/GameOver.wav");
     SetSoundVolume(gameOverSound.sound, 0.5);
 
@@ -273,14 +318,14 @@ void InitGame(void)
     SetSoundVolume(damageTaken.sound, 0.4);
 
     // Initialize Button variables
-    fxButton = LoadSound("Assets/NinjaAdventure/Sounds/Menu/Menu9.wav");   // Load button sound
-    button = LoadTexture("Assets/NinjaAdventure/HUD/play_c.png"); // Load button texture
+    fxButton = LoadSound("Assets/NinjaAdventure/Sounds/Menu/Menu9.wav"); // Load button sound
+    button = LoadTexture("Assets/NinjaAdventure/HUD/play_c.png");        // Load button texture
     sourceRec.x = 0;
     sourceRec.y = 0;
     sourceRec.width = 160;
-    sourceRec.height = 52; 
-    btnBounds.x = GetScreenWidth()/1.985 - button.width/2; 
-    btnBounds.y = GetScreenHeight()/1.65 + button.height/2;
+    sourceRec.height = 52;
+    btnBounds.x = GetScreenWidth() / 1.985 - button.width / 2;
+    btnBounds.y = GetScreenHeight() / 1.65 + button.height / 2;
     btnBounds.width = 160;
     btnBounds.height = 52;
 
@@ -297,22 +342,22 @@ void InitGame(void)
     alpha = 0;
 
     // Initialize player
-    player.playerSrc.x =  0;
+    player.playerSrc.x = 0;
     player.playerSrc.y = 0;
     player.playerSrc.width = 16;
     player.playerSrc.height = 16;
-    player.playerDest.x = GetScreenWidth()/2;
-    player.playerDest.y = GetScreenHeight()/2;
+    player.playerDest.x = GetScreenWidth() / 2;
+    player.playerDest.y = GetScreenHeight() / 2;
     player.playerDest.width = 32;
     player.playerDest.height = 32;
-    player.origin.x = player.playerDest.width/2;
-    player.origin.y = player.playerDest.height/2;
+    player.origin.x = player.playerDest.width / 2;
+    player.origin.y = player.playerDest.height / 2;
     player.speed.x = 4;
     player.speed.y = 4;
-    player.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/walk.png");
+    player.playerSprite = LoadTexture("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/walk.png");
 
     // Initialize player's shadow
-    shadow.playerSrc.x =  0;
+    shadow.playerSrc.x = 0;
     shadow.playerSrc.y = 0;
     shadow.playerSrc.width = 12;
     shadow.playerSrc.height = 7;
@@ -320,11 +365,11 @@ void InitGame(void)
     shadow.playerDest.y = player.playerDest.y + 14;
     shadow.playerDest.width = 24;
     shadow.playerDest.height = 14;
-    shadow.origin.x = shadow.playerDest.width/2;
-    shadow.origin.y = shadow.playerDest.height/2;
+    shadow.origin.x = shadow.playerDest.width / 2;
+    shadow.origin.y = shadow.playerDest.height / 2;
     shadow.speed.x = 0;
     shadow.speed.y = 0;
-    shadow.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/Shadow.png");
+    shadow.playerSprite = LoadTexture("Assets/NinjaAdventure/Actor/Characters/Shadow.png");
 
     // Initialize player's life
     playerLife[0].life = LoadTexture("Assets/NinjaAdventure/HUD/Heart.png");
@@ -373,7 +418,7 @@ void InitGame(void)
         enemy[i].speed.x = 1.2;
         enemy[i].speed.y = 1.2;
         enemy[i].active = true;
-        enemy[i].color = GRAY;
+        enemy[i].color = RED;
         enemy[i].free = false;
     }
 
@@ -387,7 +432,7 @@ void InitGame(void)
         enemy[i].speed.x = 1.2;
         enemy[i].speed.y = 1.2;
         enemy[i].active = true;
-        enemy[i].color = GRAY;
+        enemy[i].color = RED;
         enemy[i].free = false;
     }
 
@@ -401,7 +446,7 @@ void InitGame(void)
         enemy[i].speed.x = 1.2;
         enemy[i].speed.y = 1.2;
         enemy[i].active = true;
-        enemy[i].color = GRAY;
+        enemy[i].color = RED;
         enemy[i].free = false;
     }
 
@@ -416,13 +461,13 @@ void InitGame(void)
         shoot[i].rec.y = player.playerDest.y;
         shoot[i].rec.width = 16;
         shoot[i].rec.height = 16;
-        shoot[i].origin.x = shoot[i].rec.width/2;
-        shoot[i].origin.y = shoot[i].rec.height/2;
+        shoot[i].origin.x = shoot[i].rec.width / 2;
+        shoot[i].origin.y = shoot[i].rec.height / 2;
         shoot[i].speed.x = 7;
         shoot[i].speed.y = 7;
         shoot[i].bulletFrame = 0;
         shoot[i].active = false;
-        shoot[i].shootSprite = LoadTexture ("Assets/NinjaAdventure/HUD/Shuriken_anim.png");
+        shoot[i].shootSprite = LoadTexture("Assets/NinjaAdventure/HUD/Shuriken_anim.png");
     }
 }
 
@@ -431,12 +476,13 @@ void InitGame(void)
 //------------------------------------------------------------------------------------
 void UpdateGame(void)
 {
-    // Adjusting visual elements on resizabled window 
-    if (IsWindowResized()){
+    // Adjusting visual elements on resizabled window
+    if (IsWindowResized())
+    {
         // Adjust background size
         bgDest.width = GetScreenWidth();
         bgDest.height = GetScreenHeight();
-    
+
         // !player's life
         playerLife[0].lifeDest.y = GetScreenHeight() - 60;
         playerLife[1].lifeDest.y = GetScreenHeight() - 60;
@@ -452,86 +498,100 @@ void UpdateGame(void)
         UpdateMusicStream(backgroundMusic.song);
         PlayMusicStream(backgroundMusic.song);
 
-        if (IsKeyPressed('P')) pause = !pause;
+        if (IsKeyPressed('P'))
+            pause = !pause;
 
         if (!pause)
         {
 
             switch (wave)
             {
-                case FIRST:
+            case FIRST:
+            {
+                if (!smooth)
                 {
-                    if (!smooth)
-                    {
-                        alpha += 0.02f;
+                    alpha += 0.02f;
 
-                        if (alpha >= 1.0f) smooth = true;
-                    }
+                    if (alpha >= 1.0f)
+                        smooth = true;
+                }
 
-                    if (smooth) alpha -= 0.02f;
+                if (smooth)
+                    alpha -= 0.02f;
 
-                    if (enemiesKill == activeEnemies)
-                    {
-                        enemiesKill = 0;
-
-                        for (int i = 0; i < activeEnemies; i++)
-                        {
-                            if (!enemy[i].active) enemy[i].active = true;
-                        }
-
-                        activeEnemies = SECOND_WAVE;
-                        wave = SECOND;
-                        smooth = false;
-                        alpha = 0.0f;
-                    }
-                } break;
-                case SECOND:
+                if (enemiesKill == activeEnemies)
                 {
-                    if (!smooth)
-                    {
-                        alpha += 0.02f;
+                    enemiesKill = 0;
 
-                        if (alpha >= 1.0f) smooth = true;
+                    for (int i = 0; i < activeEnemies; i++)
+                    {
+                        if (!enemy[i].active)
+                            enemy[i].active = true;
                     }
 
-                    if (smooth) alpha -= 0.02f;
-
-                    if (enemiesKill == activeEnemies)
-                    {
-                        enemiesKill = 0;
-
-                        for (int i = 0; i < activeEnemies; i++)
-                        {
-                            if (!enemy[i].active) enemy[i].active = true;
-                        }
-
-                        activeEnemies = THIRD_WAVE;
-                        wave = THIRD;
-                        smooth = false;
-                        alpha = 0.0f;
-                    }
-                } break;
-                case THIRD:
+                    activeEnemies = SECOND_WAVE;
+                    wave = SECOND;
+                    smooth = false;
+                    alpha = 0.0f;
+                }
+            }
+            break;
+            case SECOND:
+            {
+                if (!smooth)
                 {
-                    if (!smooth)
-                    {
-                        alpha += 0.02f;
+                    alpha += 0.02f;
 
-                        if (alpha >= 1.0f) smooth = true;
+                    if (alpha >= 1.0f)
+                        smooth = true;
+                }
+
+                if (smooth)
+                    alpha -= 0.02f;
+
+                if (enemiesKill == activeEnemies)
+                {
+                    enemiesKill = 0;
+
+                    for (int i = 0; i < activeEnemies; i++)
+                    {
+                        if (!enemy[i].active)
+                            enemy[i].active = true;
                     }
 
-                    if (smooth) alpha -= 0.02f;
+                    activeEnemies = THIRD_WAVE;
+                    wave = THIRD;
+                    smooth = false;
+                    alpha = 0.0f;
+                }
+            }
+            break;
+            case THIRD:
+            {
+                if (!smooth)
+                {
+                    alpha += 0.02f;
 
-                    if (enemiesKill == activeEnemies) victory = true;
+                    if (alpha >= 1.0f)
+                        smooth = true;
+                }
 
-                } break;
-                default: break;
+                if (smooth)
+                    alpha -= 0.02f;
+
+                if (enemiesKill == activeEnemies)
+                    victory = true;
+            }
+            break;
+            default:
+                break;
             }
 
             // Player movement
             moving = false;
 
-            if (alive){
+            if (alive)
+            {
 
                 if (IsKeyDown(KEY_UP) && IsKeyDown(KEY_LEFT))
                 {
@@ -569,40 +629,45 @@ void UpdateGame(void)
                     moving = true;
                 }
 
-                else if (IsKeyDown(KEY_RIGHT)){
+                else if (IsKeyDown(KEY_RIGHT))
+                {
                     player.playerDest.x += player.speed.x;
                     direction = 3;
                     dirImg = 3;
                     moving = true;
                 }
 
-                else if (IsKeyDown(KEY_LEFT)){
+                else if (IsKeyDown(KEY_LEFT))
+                {
                     player.playerDest.x -= player.speed.x;
                     direction = 2;
                     dirImg = 2;
                     moving = true;
                 }
 
-                else if (IsKeyDown(KEY_UP)){
+                else if (IsKeyDown(KEY_UP))
+                {
                     player.playerDest.y -= player.speed.y;
                     direction = 1;
                     dirImg = 1;
                     moving = true;
                 }
 
-                else if (IsKeyDown(KEY_DOWN)){
+                else if (IsKeyDown(KEY_DOWN))
+                {
                     player.playerDest.y += player.speed.y;
                     direction = 0;
                     dirImg = 0;
                     moving = true;
                 }
             }
-            
+
             // In case the player is moving diagonaly and stop, shoot won't bug
-            if (!moving){
+            if (!moving)
+            {
                 if (direction == 4 || direction == 5)
                     direction = 0;
-                
+
                 if (direction == 6 || direction == 7)
                     direction = 1;
             }
@@ -610,7 +675,8 @@ void UpdateGame(void)
             // Player's movement animation
             player.playerSrc.y = 0;
 
-            if (moving){
+            if (moving)
+            {
                 if (frameCount % 10 == 1)
                     playerFrame++;
 
@@ -626,8 +692,10 @@ void UpdateGame(void)
             // Player collision with enemy
             for (int i = 0; i < activeEnemies; i++)
             {
-                if (alive) {
-                    if (CheckCollisionRecs(player.playerDest, enemy[i].rec) && colision){
+                if (alive)
+                {
+                    if (CheckCollisionRecs(player.playerDest, enemy[i].rec) && colision)
+                    {
                         playerLife[count].lifeSrc.x = (playerLife[count].lifeSrc.width * 4) - 0.8;
                         PlaySound(damageTaken.sound);
                         count--;
@@ -638,19 +706,21 @@ void UpdateGame(void)
                     }
 
                     // Damage "animation" indicator
-                    if (damageAnim){
+                    if (damageAnim)
+                    {
                         if (damageAnimCount == 0 || damageAnimCount == 200)
                         {
-                            player.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/Damage.png");
+                            player.playerSprite = LoadTexture("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/Damage.png");
                         }
                         else if (damageAnimCount == 100 || damageAnimCount == 300)
                         {
-                            player.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/walk.png");
+                            player.playerSprite = LoadTexture("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/walk.png");
                         }
 
                         damageAnimCount++;
 
-                        if (damageAnimCount > 300){
+                        if (damageAnimCount > 300)
+                        {
                             damageAnim = false;
                             damageAnimCount = 0;
                         }
@@ -658,16 +728,18 @@ void UpdateGame(void)
 
                     // Player can't take damage while "invencible" is activated
                     invencibleCount++;
-                    if (invencibleCount > 300){
+                    if (invencibleCount > 300)
+                    {
                         colision = true;
                     }
                 }
 
                 // When player is dead
-                if (count == -1){
+                if (count == -1)
+                {
                     StopMusicStream(backgroundMusic.song);
 
-                    player.playerSprite = LoadTexture ("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/Dead.png");
+                    player.playerSprite = LoadTexture("Assets/NinjaAdventure/Actor/Characters/GreenNinja/SeparateAnim/Dead.png");
                     player.playerSrc.x = 0;
                     player.playerSrc.y = 0;
                     alive = false;
@@ -676,14 +748,14 @@ void UpdateGame(void)
 
                     timerCount++;
 
-                    if (timerCount > 500){
+                    if (timerCount > 500)
+                    {
                         gameOver = true;
                     }
                 }
-
             }
 
-            // Enemies will only follow after a certain time 
+            // Enemies will only follow after a certain time
 
             // Right enemy behaviour
             for (int i = 0; i < activeEnemies; i += 3)
@@ -723,10 +795,10 @@ void UpdateGame(void)
             }
 
             // General enemy behaviour (follow player)
-            for (int i = 0; i < activeEnemies; i ++)
+            for (int i = 0; i < activeEnemies; i++)
             {
                 if (enemy[i].active && enemy[i].free)
-                {   
+                {
                     if (player.playerDest.x < enemy[i].rec.x)
                         enemy[i].rec.x -= enemy[i].speed.x;
 
@@ -738,15 +810,18 @@ void UpdateGame(void)
 
                     if (player.playerDest.y > enemy[i].rec.y)
                         enemy[i].rec.y += enemy[i].speed.y;
-
                 }
             }
 
             // Wall behaviour
-            if (player.playerDest.x - player.playerDest.width/2 <= 0) player.playerDest.x = player.playerDest.width/2;
-            if (player.playerDest.x + player.playerDest.width/2 >= GetScreenWidth()) player.playerDest.x = GetScreenWidth() - player.playerDest.width/2;
-            if (player.playerDest.y - player.playerDest.height/2 <= 0) player.playerDest.y = player.playerDest.height/2;
-            if (player.playerDest.y + player.playerDest.height/2 >= GetScreenHeight()) player.playerDest.y = GetScreenHeight() - player.playerDest.height/2;
+            if (player.playerDest.x - player.playerDest.width / 2 <= 0)
+                player.playerDest.x = player.playerDest.width / 2;
+            if (player.playerDest.x + player.playerDest.width / 2 >= GetScreenWidth())
+                player.playerDest.x = GetScreenWidth() - player.playerDest.width / 2;
+            if (player.playerDest.y - player.playerDest.height / 2 <= 0)
+                player.playerDest.y = player.playerDest.height / 2;
+            if (player.playerDest.y + player.playerDest.height / 2 >= GetScreenHeight())
+                player.playerDest.y = GetScreenHeight() - player.playerDest.height / 2;
 
             // Shadow behaviour
             shadow.playerDest.x = player.playerDest.x;
@@ -759,7 +834,7 @@ void UpdateGame(void)
 
                 for (int i = 0; i < NUM_SHOOTS; i++)
                 {
-                    if (!shoot[i].active && shootRate%20 == 0)
+                    if (!shoot[i].active && shootRate % 20 == 0)
                     {
                         shoot[i].rec.x = player.playerDest.x;
                         shoot[i].rec.y = player.playerDest.y + 10;
@@ -768,45 +843,46 @@ void UpdateGame(void)
                         // Bullet Movement
                         // Using variable direction to see where's the player shooting.
                         // Using bulletDirection to define where's the bullet going.
-                        
-                        switch (direction){
-                            case 7: 
-                                shoot[i].bulletDirection = 7;
-                                break;
 
-                            case 6: 
-                                shoot[i].bulletDirection = 6;
-                                break;
+                        switch (direction)
+                        {
+                        case 7:
+                            shoot[i].bulletDirection = 7;
+                            break;
 
-                            case 5: 
-                                shoot[i].bulletDirection = 5;
-                                break;
+                        case 6:
+                            shoot[i].bulletDirection = 6;
+                            break;
 
-                            case 4: 
-                                shoot[i].bulletDirection = 4;
-                                break;
+                        case 5:
+                            shoot[i].bulletDirection = 5;
+                            break;
 
-                            case 3: 
-                                shoot[i].bulletDirection = 3;
-                                break;
+                        case 4:
+                            shoot[i].bulletDirection = 4;
+                            break;
 
-                            case 2: 
-                                shoot[i].bulletDirection = 2;
-                                break;
+                        case 3:
+                            shoot[i].bulletDirection = 3;
+                            break;
 
-                            case 1: 
-                                shoot[i].bulletDirection = 1;
-                                break;
+                        case 2:
+                            shoot[i].bulletDirection = 2;
+                            break;
 
-                            case 0: 
-                                shoot[i].bulletDirection = 0;
-                                break;
+                        case 1:
+                            shoot[i].bulletDirection = 1;
+                            break;
 
-                            default:
-                                break;
+                        case 0:
+                            shoot[i].bulletDirection = 0;
+                            break;
+
+                        default:
+                            break;
                         }
 
-                        break; 
+                        break;
                     }
                 }
             }
@@ -817,55 +893,64 @@ void UpdateGame(void)
                 if (shoot[i].active)
                 {
 
-                    if (frameCount % 6 == 0){
+                    if (frameCount % 6 == 0)
+                    {
                         shoot[i].shootSrc.x = shoot[i].bulletFrame * 20;
                         shoot[i].bulletFrame++;
-                                                  
+
                         if (shoot[i].bulletFrame > 3)
-                            shoot[i].bulletFrame = 0;                     
+                            shoot[i].bulletFrame = 0;
                     }
 
                     // bulletDirection:
-                    switch (shoot[i].bulletDirection){
-                        // [Top-Left]
-                        case 7: shoot[i].rec.x -= shoot[i].speed.x;
-                                shoot[i].rec.y -= shoot[i].speed.y;
-                                break;
+                    switch (shoot[i].bulletDirection)
+                    {
+                    // [Top-Left]
+                    case 7:
+                        shoot[i].rec.x -= shoot[i].speed.x;
+                        shoot[i].rec.y -= shoot[i].speed.y;
+                        break;
 
-                        // [Top-Right]
-                        case 6: shoot[i].rec.x += shoot[i].speed.x;
-                                shoot[i].rec.y -= shoot[i].speed.y;
-                                break;
+                    // [Top-Right]
+                    case 6:
+                        shoot[i].rec.x += shoot[i].speed.x;
+                        shoot[i].rec.y -= shoot[i].speed.y;
+                        break;
 
-                        // [Bottom-Left]
-                        case 5: shoot[i].rec.x -= shoot[i].speed.x;
-                                shoot[i].rec.y += shoot[i].speed.y;
-                                break;
+                    // [Bottom-Left]
+                    case 5:
+                        shoot[i].rec.x -= shoot[i].speed.x;
+                        shoot[i].rec.y += shoot[i].speed.y;
+                        break;
 
-                        // [Bottom-Right]
-                        case 4: shoot[i].rec.x += shoot[i].speed.x;
-                                shoot[i].rec.y += shoot[i].speed.y;
-                                break;
+                    // [Bottom-Right]
+                    case 4:
+                        shoot[i].rec.x += shoot[i].speed.x;
+                        shoot[i].rec.y += shoot[i].speed.y;
+                        break;
 
-                        // [Right]
-                        case 3: shoot[i].rec.x += shoot[i].speed.x;
-                                break;
+                    // [Right]
+                    case 3:
+                        shoot[i].rec.x += shoot[i].speed.x;
+                        break;
 
-                        // [Left]
-                        case 2: shoot[i].rec.x -= shoot[i].speed.x;
-                                break;
+                    // [Left]
+                    case 2:
+                        shoot[i].rec.x -= shoot[i].speed.x;
+                        break;
 
-                        // [Top]
-                        case 1: shoot[i].rec.y -= shoot[i].speed.y;
-                                break;
+                    // [Top]
+                    case 1:
+                        shoot[i].rec.y -= shoot[i].speed.y;
+                        break;
 
-                        // [Bottom]
-                        case 0: shoot[i].rec.y += shoot[i].speed.y;
-                                break;
+                    // [Bottom]
+                    case 0:
+                        shoot[i].rec.y += shoot[i].speed.y;
+                        break;
 
-                        default: 
-                                break;
-
+                    default:
+                        break;
                     }
 
                     // Collision with enemy
@@ -906,12 +991,10 @@ void UpdateGame(void)
                                 shoot[i].active = false;
                                 shootRate = 0;
                             }
-                            
                         }
                     }
                 }
             }
-
         }
     }
     else
@@ -924,11 +1007,11 @@ void UpdateGame(void)
     }
 }
 
-
 //------------------------------------------------------------------------------------
 // Update Logo (one frame)
 //------------------------------------------------------------------------------------
-void UpdateLogo(void){
+void UpdateLogo(void)
+{
 
     bgDest.width = GetScreenWidth();
     bgDest.height = GetScreenHeight();
@@ -938,7 +1021,6 @@ void UpdateLogo(void){
     // Background music for logo screen
     UpdateMusicStream(backgroundMenu.song);
     PlayMusicStream(backgroundMenu.song);
-
 }
 
 //------------------------------------------------------------------------------------
@@ -952,7 +1034,8 @@ void DrawLogo(void)
 //------------------------------------------------------------------------------------
 // Update Title (one frame)
 //------------------------------------------------------------------------------------
-void UpdateTitle(void){
+void UpdateTitle(void)
+{
 
     bgDest.width = GetScreenWidth();
     bgDest.height = GetScreenHeight();
@@ -963,8 +1046,8 @@ void UpdateTitle(void){
     UpdateMusicStream(backgroundMenu.song);
     PlayMusicStream(backgroundMenu.song);
 
-    btnBounds.x = GetScreenWidth()/1.985 - button.width/2; 
-    btnBounds.y = GetScreenHeight()/1.65 + button.height/2;
+    btnBounds.x = GetScreenWidth() / 1.985 - button.width / 2;
+    btnBounds.y = GetScreenHeight() / 1.65 + button.height / 2;
 
     mousePoint = GetMousePosition();
     btnAction = false;
@@ -972,14 +1055,15 @@ void UpdateTitle(void){
     // Check button state
     if (CheckCollisionPointRec(mousePoint, btnBounds))
     {
-        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
+        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+        {
             button = LoadTexture("Assets/NinjaAdventure/HUD/play_d.png");
         }
 
-        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) 
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             btnAction = true;
     }
-    else 
+    else
     {
         button = LoadTexture("Assets/NinjaAdventure/HUD/play_c.png");
     }
@@ -1003,7 +1087,7 @@ void DrawTitle(void)
     DrawTexturePro(backgroundTitle, bgSrc, bgDest, bgOrigin, 0, WHITE);
 
     // Draw button frame
-    DrawTextureRec(button, sourceRec, (Vector2){ btnBounds.x, btnBounds.y }, WHITE); 
+    DrawTextureRec(button, sourceRec, (Vector2){btnBounds.x, btnBounds.y}, WHITE);
 }
 
 //------------------------------------------------------------------------------------
@@ -1014,42 +1098,53 @@ void DrawGame(void)
     ClearBackground(DARKGRAY);
 
     if (!gameOver)
+    {
+        DrawTexturePro(backgroundMain, bgSrc, bgDest, bgOrigin, 0, WHITE);
+
+        // Rectangle for tracking character position (testes!)
+        // DrawRectangle(player.playerDest.x, player.playerDest.y, player.playerDest.width, player.playerDest.height, BLUE);
+        DrawTexturePro(shadow.playerSprite, shadow.playerSrc, shadow.playerDest, shadow.origin, 0, WHITE);
+        DrawTexturePro(player.playerSprite, player.playerSrc, player.playerDest, player.origin, 0, WHITE);
+
+        // Draw player's life
+        DrawTexturePro(playerLife[0].life, playerLife[0].lifeSrc, playerLife[0].lifeDest, playerLife[0].origin, 0, WHITE);
+        DrawTexturePro(playerLife[1].life, playerLife[1].lifeSrc, playerLife[1].lifeDest, playerLife[1].origin, 0, WHITE);
+        DrawTexturePro(playerLife[2].life, playerLife[2].lifeSrc, playerLife[2].lifeDest, playerLife[2].origin, 0, WHITE);
+
+        if (wave == FIRST)
+            DrawText("FIRST WAVE", GetScreenWidth() / 2 - MeasureText("FIRST WAVE", 40) / 2, GetScreenHeight() / 2 - 40, 40, Fade(BLACK, alpha));
+        else if (wave == SECOND)
+            DrawText("SECOND WAVE", GetScreenWidth() / 2 - MeasureText("SECOND WAVE", 40) / 2, GetScreenHeight() / 2 - 40, 40, Fade(BLACK, alpha));
+        else if (wave == THIRD)
+            DrawText("THIRD WAVE", GetScreenWidth() / 2 - MeasureText("THIRD WAVE", 40) / 2, GetScreenHeight() / 2 - 40, 40, Fade(BLACK, alpha));
+
+        for (int i = 0; i < activeEnemies; i++)
         {
-            DrawTexturePro(backgroundMain, bgSrc, bgDest, bgOrigin, 0, WHITE);
-
-            // Rectangle for tracking character position (testes!)
-            // DrawRectangle(player.playerDest.x, player.playerDest.y, player.playerDest.width, player.playerDest.height, BLUE);
-            DrawTexturePro(shadow.playerSprite, shadow.playerSrc, shadow.playerDest, shadow.origin, 0, WHITE);
-            DrawTexturePro(player.playerSprite, player.playerSrc, player.playerDest, player.origin, 0, WHITE);
-            
-            // Draw player's life
-            DrawTexturePro(playerLife[0].life, playerLife[0].lifeSrc, playerLife[0].lifeDest, playerLife[0].origin, 0, WHITE);
-            DrawTexturePro(playerLife[1].life, playerLife[1].lifeSrc, playerLife[1].lifeDest, playerLife[1].origin, 0, WHITE);
-            DrawTexturePro(playerLife[2].life, playerLife[2].lifeSrc, playerLife[2].lifeDest, playerLife[2].origin, 0, WHITE);
-
-            if (wave == FIRST) DrawText("FIRST WAVE", GetScreenWidth()/2 - MeasureText("FIRST WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(BLACK, alpha));
-            else if (wave == SECOND) DrawText("SECOND WAVE",GetScreenWidth()/2 - MeasureText("SECOND WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(BLACK, alpha));
-            else if (wave == THIRD) DrawText("THIRD WAVE", GetScreenWidth()/2 - MeasureText("THIRD WAVE", 40)/2, GetScreenHeight()/2 - 40, 40, Fade(BLACK, alpha));
-
-            for (int i = 0; i < activeEnemies; i++)
-            {
-                if (enemy[i].active) DrawRectangleRec(enemy[i].rec, enemy[i].color);
-            }
-
-            for (int i = 0; i < NUM_SHOOTS; i++)
-            {
-                // Draw Shuriken (character basic atk)
-                if (shoot[i].active) DrawTexturePro(shoot[i].shootSprite, shoot[i].shootSrc, shoot[i].rec, shoot[i].origin, 0, WHITE);
-            }
-
-            DrawText(TextFormat("%04i", score), 20, 20, 40, GRAY);
-
-            if (victory) DrawText("YOU WIN", GetScreenWidth()/2 - MeasureText("YOU WIN", 40)/2, GetScreenHeight()/2 - 40, 40, BLACK);
-
-            if (pause) DrawText("GAME PAUSED", GetScreenWidth()/2 - MeasureText("GAME PAUSED", 40)/2, GetScreenHeight()/2 - 40, 40, GRAY);
+            if (enemy[i].active)
+                DrawRectangleRec(enemy[i].rec, enemy[i].color);
         }
-    else DrawText("PRESS [ENTER] TO PLAY AGAIN", GetScreenWidth()/2 - MeasureText("PRESS [ENTER] TO PLAY AGAIN", 20)/2, GetScreenHeight()/2 - 50, 20, GRAY);
 
+        for (int i = 0; i < NUM_SHOOTS; i++)
+        {
+            // Draw Shuriken (character basic atk)
+            if (shoot[i].active)
+                DrawTexturePro(shoot[i].shootSprite, shoot[i].shootSrc, shoot[i].rec, shoot[i].origin, 0, WHITE);
+        }
+
+        DrawText(TextFormat("%04i", score), 20, 20, 40, GRAY);
+
+        if (victory)
+            DrawText("YOU WIN", GetScreenWidth() / 2 - MeasureText("YOU WIN", 40) / 2, GetScreenHeight() / 2 - 40, 40, BLACK);
+
+        if (pause)
+            DrawText("GAME PAUSED", GetScreenWidth() / 2 - MeasureText("GAME PAUSED", 40) / 2, GetScreenHeight() / 2 - 40, 40, GRAY);
+    }
+    else
+    {
+        scorerank();
+
+        DrawText("PRESS [ENTER] TO PLAY AGAIN", GetScreenWidth() / 2 - MeasureText("PRESS [ENTER] TO PLAY AGAIN", 20) / 2, GetScreenHeight() / 2 - 50, 20, GRAY);
+    }
 }
 
 //------------------------------------------------------------------------------------
@@ -1059,34 +1154,33 @@ void DrawScreen()
 {
     BeginDrawing();
 
-        ClearBackground(RAYWHITE);
+    ClearBackground(RAYWHITE);
 
-        switch(currentScreen)
-        {
-            case LOGO:
-            {
-                DrawLogo();
-
-            } break;
-            case TITLE:
-            {
-                DrawTitle();
-
-            } break;
-            case GAMEPLAY:
-            {   
-                DrawGame();
-
-            } break;
-            case ENDING:
-            {
-                // TODO: Create and Instantiate drawEnding function;
-                DrawRectangle(0, 0, screenWidth, screenHeight, GREEN);
-                DrawText("TITLE SCREEN", 20, 20, 40, DARKGREEN);
-
-            } break;
-            default: break;
-        }
+    switch (currentScreen)
+    {
+    case LOGO:
+    {
+        DrawLogo();
+    }
+    break;
+    case TITLE:
+    {
+        DrawTitle();
+    }
+    break;
+    case GAMEPLAY:
+    {
+        DrawGame();
+    }
+    break;
+    case ENDING:
+    {
+        DrawEnd();
+    }
+    break;
+    default:
+        break;
+    }
 
     EndDrawing();
     //----------------------------------------------------------------------------------
@@ -1113,10 +1207,196 @@ void UnloadGame(void)
     UnloadSound(damageTaken.sound);
     UnloadSound(fxButton);
 
-     for (int i = 0; i < NUM_SHOOTS; i++)
+    for (int i = 0; i < NUM_SHOOTS; i++)
     {
         // Unload all shurikens
         UnloadTexture(shoot[i].shootSprite);
     }
 }
 
+void scorerank(void)
+{
+    FILE *arq;
+    Playerscore reg = {0};
+    Playerscore temp = {0};
+
+    player1.fscore = score;
+
+    arq = fopen("rankscore.bin", "r+b");
+
+    if (arq == NULL)
+    {
+        arq = fopen("rankscore.bin", "w+b");
+
+        fwrite(&player1, sizeof(Playerscore), 1, arq);
+
+        for (int i = 0; i < 9; i++)
+        {
+            fwrite(&reg, sizeof(Playerscore), 1, arq);
+        }
+        fclose(arq);
+    }
+    else
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            fread(&reg, sizeof(Playerscore), 1, arq);
+            if (player1.fscore > reg.fscore)
+            {
+                temp = reg;
+
+                fseek(arq, -sizeof(Playerscore), 1);
+
+                fwrite(&player1, sizeof(Playerscore), 1, arq);
+
+                player1 = temp;
+            }
+        }
+        fclose(arq);
+    }
+    for (int i = 0; i < 11; i++)
+    {
+        printf("%s", player1.name);
+    }
+}
+
+void Input_text(void)
+{
+    if (CheckCollisionPointRec(GetMousePosition(), textBox))
+        mouseOnText = true;
+    else
+        mouseOnText = false;
+
+    if (mouseOnText)
+    {
+        // Set the window's cursor to the I-Beam
+        SetMouseCursor(MOUSE_CURSOR_IBEAM);
+
+        // Get char pressed (unicode character) on the queue
+        int key = GetCharPressed();
+
+        // Check if more characters have been pressed on the same frame
+        while (key > 0)
+        {
+            // NOTE: Only allow keys in range [32..125]
+            if ((key >= 32) && (key <= 125) && (letterCount < 10))
+            {
+                player1.name[letterCount] = (char)key;
+                player1.name[letterCount + 1] = '\0'; // Add null terminator at the end of the string.
+                letterCount++;
+            }
+
+            key = GetCharPressed(); // Check next character in the queue
+        }
+
+        if (IsKeyPressed(KEY_BACKSPACE))
+        {
+            letterCount--;
+            if (letterCount < 0)
+                letterCount = 0;
+            player1.name[letterCount] = '\0';
+        }
+    }
+    else
+        SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+
+    if (mouseOnText)
+        framesCounter++;
+    else
+        framesCounter = 0;
+}
+
+void UpdateEnd(void)
+{
+    bgDest.width = GetScreenWidth();
+    bgDest.height = GetScreenHeight();
+    bgSrc.width = 890;
+    bgSrc.height = 470;
+
+    // Background music for logo screen
+    UpdateMusicStream(backgroundMenu.song);
+    PlayMusicStream(backgroundMenu.song);
+
+    if (IsKeyPressed(KEY_ENTER))
+        endcount = true;
+
+    Input_text();
+
+    if (endcount)
+    {
+        if(gameOver == false)
+        {
+            scorerank();
+            gameOver = true;
+        }
+
+        if (KEY_ENTER)
+        {
+            FILE *arq;
+            arq = fopen("rankscore.bin", "rb");
+
+            for (int i = 0; i < 10; i++)
+            {
+                fread(&rankplayer[i], sizeof(Playerscore), 1, arq);
+            }
+        }
+    }
+}
+
+void DrawEnd(void)
+{
+    ClearBackground(RAYWHITE);
+    if (IsKeyPressed(KEY_ENTER))
+        endcount = true;
+
+    if (endcount)
+    {
+        DrawText("RANK", GetScreenWidth() / 2 - MeasureText("RANK", 20) / 2, 40, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[0].name), 800, 80, 20, GRAY);
+        DrawText(TextFormat("%04i", rankplayer[0].fscore), 1000, 80, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[1].name), 800, 160, 20, GRAY);
+        DrawText(TextFormat("%04i", rankplayer[1].fscore), 1000, 160, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[2].name), 800, 240, 20, GRAY);
+        DrawText(TextFormat("%04i", rankplayer[2].fscore), 1000, 240, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[3].name), 800, 320, 20, GRAY);
+        DrawText(TextFormat("%04i", rankplayer[3].fscore), 1000, 320, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[4].name), 800, 400, 20, GRAY);
+        DrawText(TextFormat("%04i", rankplayer[4].fscore), 1000, 400, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[5].name), 800, 480, 20, GRAY);
+        DrawText(TextFormat("%04i", rankplayer[5].fscore), 1000, 480, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[6].name), 800, 560, 20, GRAY);
+        DrawText(TextFormat("%04i", rankplayer[6].fscore), 1000, 560, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[7].name), 800, 640, 20, GRAY);
+        DrawText(TextFormat("%04i", rankplayer[7].fscore), 1000, 640, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[8].name), 800, 720, 20, GRAY);
+        DrawText(TextFormat("%04i", rankplayer[8].fscore), 1000, 720, 20, GRAY);
+        DrawText(TextFormat("%s", rankplayer[9].name), 800, 800, 20, GRAY);
+        DrawText(TextFormat("%04i", rankplayer[9].fscore), 1000, 800, 20, GRAY);
+    }
+
+    if (endcount == false)
+    {
+        DrawText("PLACE MOUSE OVER INPUT BOX!", GetScreenWidth() / 2 - MeasureText("PLACE MOUSE OVER INPUT BOX!", 20) / 2, 140, 20, GRAY);
+
+        DrawRectangleRec(textBox, LIGHTGRAY);
+        if (mouseOnText)
+            DrawRectangleLines((int)textBox.x, (int)textBox.y, (int)textBox.width, (int)textBox.height, RED);
+        else
+            DrawRectangleLines((int)textBox.x, (int)textBox.y, (int)textBox.width, (int)textBox.height, DARKGRAY);
+
+        DrawText(player1.name, (int)textBox.x + 5, (int)textBox.y + 8, 40, MAROON);
+
+        DrawText(TextFormat("INPUT CHARS: %i/%i", letterCount, 10), GetScreenWidth() / 2 - MeasureText("PLACE MOUSE OVER INPUT BOX!", 20) / 2, 250, 20, DARKGRAY);
+
+        if (mouseOnText)
+        {
+            if (letterCount < 10)
+            {
+                // Draw blinking underscore char
+                DrawText("_", (int)textBox.x + 8 + MeasureText(player1.name, 40), (int)textBox.y + 12, 40, MAROON);
+            }
+            else
+                DrawText("Press BACKSPACE to delete chars...", 230, 300, 20, GRAY);
+        }
+    }
+}
